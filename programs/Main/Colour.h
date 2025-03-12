@@ -44,7 +44,7 @@ bool isGreen2() { // nimmt letzten ausgelesen Wert von Farbsensor 2 und returnt 
   }
 }
 
-bool isRed() {
+bool isRed1() {
   if ((1.3 * (blue + green) <= red + 300) || (1.3 * (old_colour[2] + old_colour[1]) <= old_colour[0] + 300)) {
     return true;
   }
@@ -58,11 +58,14 @@ bool isRed2() {
   return false;
 }
 
+bool isRed() {
+  return (isRed1() && isRed2()) && (brightness <= colorBrightMaxThreshold + 800 || brightness2 <= colorBrightMaxThreshold + 800);
+}
+
 void redHandling() {
   readColor();
   readColor2();
-  if ((isRed() && isRed2()) && (brightness <= colorBrightMaxThreshold + 800 || brightness2 <= colorBrightMaxThreshold + 800)) {
-    
+  if (isRed()) {
     stop();
     digitalWrite(LEDR, HIGH);
     

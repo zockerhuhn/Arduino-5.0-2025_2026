@@ -14,8 +14,9 @@ void kreuzung(int sides /*- 1 is left, 0 is none, 1 is right*/) {
     while (!(stopping)) {
       if (stopping_in > 0) stopping_in--;
       if (stopping_in == 0) stopping = true;
-      readColor2();
+      
       readColor();
+      readColor2();
 
       if (isGreen()) {
         green_occurences1 += 1; 
@@ -44,7 +45,7 @@ void kreuzung(int sides /*- 1 is left, 0 is none, 1 is right*/) {
 
       calculatedReflection = calculateReflection();
 
-      if (!(calculatedReflection == "frontalLine" || calculatedReflection == "sideLine") && stopping_in < 0) {
+      if (!(calculatedReflection == frontalLine || calculatedReflection == sideLeftLine ||  calculatedReflection == sideRightLine) && stopping_in < 0) {
         stopping_in = 3;
       }
       
@@ -72,6 +73,9 @@ void kreuzung(int sides /*- 1 is left, 0 is none, 1 is right*/) {
       // Turn
       Serial.print("turn\t");
       right(180, 2);
+      // move forward just a bit
+      straight(2);
+      delay(100);
     }
     else if (green_occurences1 >= 2) {
       Serial.print("right\t");
@@ -89,74 +93,17 @@ void kreuzung(int sides /*- 1 is left, 0 is none, 1 is right*/) {
       delay(200);
     }
     else { // Did not find any green
-      if (calculateReflection() == "noLine") {
-        if (sides == -1 || sides == 0) {
-          // finding line
-          readDirection();
-          int initialDirection = direction;
-          left();
-          while ((((initialDirection - 80) + 360) % 360) != direction) {
-            delay(10);
-            readDirection();
-            if (calculateReflection() == "normalLine") break;
-            
-            if (digitalRead(motorPin)) {
-              stop();
-              return;
-            }
-          }
-          stop();
-          straight();
-          delay(100);
-
-          if (calculateReflection() != "normalLine") {
-            // going right "forever"    
-            right();
-            // Serial.print("looping\t");
-            while (calculateReflection() == "noLine") // MAYBE because it turns left at the start ignore left Lines because these would be the wrong direction (for a kreuzung for example they would be left instead of straight)
-            {
-              // Serial.print("\nsuche...");
-              delay(10);
-              if (digitalRead(motorPin)) {
-                stop();
-                return;
-              }
-            }
-          }
-        }
-        else if (sides == 1) {
-          // finding line
-          readDirection();
-          int initialDirection = direction;
-          right();
-          while (((initialDirection + 80) % 360) != direction) {
-            delay(10);
-            readDirection();
-            if (calculateReflection() == "normalLine") break;
-
-            if (digitalRead(motorPin)) {
-              stop();
-              return;
-            }
-          }
-          stop();
-          straight();
-          delay(100);
-          
-          if (calculateReflection() != "normalLine") {
-            // going right "forever"    
-            left();
-            Serial.print("looping\t");
-            while (calculateReflection() == "noLine") // MAYBE because it turns left at the start ignore left Lines because these would be the wrong direction (for a kreuzung for example they would be left instead of straight)
-            {
-              Serial.print("\nsuche...");
-              if (digitalRead(motorPin)) {
-                stop();
-                return;
-              }
-            }
-          }
-        }
+      switch (sides) {
+        case -1:
+          right(45);
+          left_to_line();
+          break;
+        case 1:
+          left(45);
+          right_to_line();
+          break;
+        default:
+          break;
       }
     }
   }

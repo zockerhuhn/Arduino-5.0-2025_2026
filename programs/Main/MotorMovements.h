@@ -11,6 +11,7 @@ void straight(float speed = 1) //drive straight
 {
   if (digitalRead(motorPin)) {
     stop();
+    bigState = STOP;
     return;
   }
   motors.flipLeftMotor(false);
@@ -22,6 +23,7 @@ void left(int turnBy=0, float speed = 1) //turn left
 {
   stop();
   if (digitalRead(motorPin)) {
+    bigState = STOP;
     return;
   }
   readDirection();
@@ -35,6 +37,7 @@ void left(int turnBy=0, float speed = 1) //turn left
       readDirection();
       if (digitalRead(motorPin)) {
         stop();
+        bigState = STOP;
         return;
       }
     }
@@ -46,6 +49,7 @@ void right(int turnBy=0, float speed = 1) //turn right
 {
   stop();
   if (digitalRead(motorPin)) {
+    bigState = STOP;
     return;
   }
   readDirection();
@@ -59,6 +63,7 @@ void right(int turnBy=0, float speed = 1) //turn right
       readDirection();
       if (digitalRead(motorPin)) {
         stop();
+        bigState = STOP;
         return;
       }
     }
@@ -70,6 +75,7 @@ void straight_left(float speed = 1) //drive straight but pull left
 {
   if (digitalRead(motorPin)) {
     stop();
+    bigState = STOP;
     return;
   }
   // Configuration for left
@@ -82,6 +88,7 @@ void straight_right(float speed = 1) //drive straight but pull right
 {
   if (digitalRead(motorPin)) {
     stop();
+    bigState = STOP;
     return;
   }
   // Configuration for right
@@ -91,22 +98,23 @@ void straight_right(float speed = 1) //drive straight but pull right
 }
 
 
-void left_to_line(float speed = 1, int turnBy = 190) {
+void left_to_line(float speed = 1, int turnBy = 70) {
   // going left until it finds a line  
   if (digitalRead(motorPin)) {
     stop();
+    bigState = STOP;
     return;
   }
   readDirection();
   int initialDirection = direction;
   left(0, speed);
-  while ((calculatedReflection = calculateReflection()) == "noLine") {
+  while ((calculatedReflection = calculateReflection()) != normalLine) {
     delay(10);
     readDirection();
-    if (calculatedReflection == "leftLine") {
+    if (calculatedReflection == leftLine) {
       straight_left();
       break;
-    } else if (calculatedReflection == "rightLine") {
+    } else if (calculatedReflection == rightLine) {
       straight_right();
       break;
     }
@@ -115,28 +123,31 @@ void left_to_line(float speed = 1, int turnBy = 190) {
     }
 
     if (digitalRead(motorPin)) {
-      stop();
-      return;
-    }
+    stop();
+    bigState = STOP;
+    return;
   }
+  }
+  state = straight_driving;
 }
 
-void right_to_line(float speed = 1, int turnBy = 190) {
+void right_to_line(float speed = 1, int turnBy = 70) {
   // going right until it finds a line  
   if (digitalRead(motorPin)) {
     stop();
+    bigState = STOP;
     return;
   }
   readDirection();
   int initialDirection = direction;
   right(0, speed);
-  while ((calculatedReflection = calculateReflection()) == "noLine") {
+  while ((calculatedReflection = calculateReflection()) != normalLine) {
     delay(10);
     readDirection();
-    if (calculatedReflection == "leftLine") {
+    if (calculatedReflection == leftLine) {
       straight_left();
       break;
-    } else if (calculatedReflection == "rightLine") {
+    } else if (calculatedReflection == rightLine) {
       straight_right();
       break;
     }
@@ -145,17 +156,19 @@ void right_to_line(float speed = 1, int turnBy = 190) {
     }
 
     if (digitalRead(motorPin)) {
-      stop();
-      return;
-    }
+    stop();
+    bigState = STOP;
+    return;
   }
+  }
+  state = straight_driving;
 }
 
 void abstand_umfahren() {
   digitalWrite(LED_BUILTIN, HIGH);
   if (digitalRead(motorPin)) {
     stop();
-    for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+    bigState = STOP;
     return;
     }
 
@@ -170,7 +183,7 @@ void abstand_umfahren() {
   right();
   if (digitalRead(motorPin)) {
     stop();
-    for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+    bigState = STOP;
     return;
   }
   delay(2000);
@@ -178,7 +191,7 @@ void abstand_umfahren() {
   straight();
   if (digitalRead(motorPin)) {
     stop();
-    for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+    bigState = STOP;
     return;
   }
   delay(4000);
@@ -187,7 +200,7 @@ void abstand_umfahren() {
   left();
   if (digitalRead(motorPin)) {
     stop();
-    for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+    bigState = STOP;
     return;
   }
   delay(2000);
@@ -196,7 +209,7 @@ void abstand_umfahren() {
 
   if (digitalRead(motorPin)) {
     stop();
-    for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+    bigState = STOP;
     return;
   }
   delay(6500);
@@ -205,7 +218,7 @@ void abstand_umfahren() {
   left();
   if (digitalRead(motorPin)) {
     stop();
-    for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+    bigState = STOP;
     return;
   }
   delay(2000);
@@ -214,29 +227,29 @@ void abstand_umfahren() {
 
   if (digitalRead(motorPin)) {
     stop();
-    for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+    bigState = STOP;
     return;
   }
 
   delay(1200);
-  while ((calculatedReflection = calculateReflection()) == "noLine") {
+  while ((calculatedReflection = calculateReflection()) == noLine) {
     if (digitalRead(motorPin)) {
       stop();
-      for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+      bigState = STOP;
       return;
     }
   }
 
   if (digitalRead(motorPin)) {
     stop();
-    for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+    bigState = STOP;
     return;
   }
   delay(1500);
 
   if (digitalRead(motorPin)) {
     stop();
-    for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+    bigState = STOP;
     return;
   }
   right_to_line(180);

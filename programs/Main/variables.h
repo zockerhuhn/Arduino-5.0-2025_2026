@@ -6,7 +6,21 @@ const uint8_t SENSOR_BAR_PINS[] = {D6, D0, D1, D7, D8, D9};
 // hier speichern wir die 6 Reflektionssensorwerte ab:
 uint16_t reflectance_array[SENSOR_BAR_NUM_SENSORS];
 QTRSensors reflectanceSensor = QTRSensors();
-String calculatedReflection;
+
+enum Reflections {
+  sideRightLine,
+  sideLeftLine,
+  hardLeftLine,
+  hardRightLine,
+  leftLine,
+  rightLine,
+  frontalLine,
+  extremeLine,
+  normalLine,
+  noLine,
+};
+
+Reflections calculatedReflection;
 // hier speichern wir die Farbsensorwerte ab:
 // Roh-Werte (Es gibt auch kalibierte Werte, aber die sind sehr langsam auszulesen):
 uint16_t red, green, blue, brightness;
@@ -52,13 +66,26 @@ uint16_t direction;
 uint16_t current_direction;
 
 
-// Track what side was last seen
-enum Sides {
-  MIDDLE,
-  LEFT_SIDE,
-  RIGHT_SIDE,
+// State machine
+enum BigState {
+  OPFER,
+  DRIVING,
+  STOP,
+  CALIBRATION,
 };
-enum Sides last_side = MIDDLE;
+BigState bigState;
+
+enum State {
+  straight_driving,
+  crossing,
+  turn_left_to_line,
+  turn_right_to_line,
+  turn_left_90,
+  turn_right_90,
+  left_side,
+  right_side,
+};
+State state = straight_driving;
 
 // Debug modes:
 enum DebugMode {
@@ -75,3 +102,6 @@ int last_kreuzung = 0; // TODO implement this so kreuzung doesn't trigger immedi
 
 // Opferlogic
 int no_line_cycle_count = 0;
+int left_line_cycle_count = 0;
+int right_line_cycle_count = 0;
+int kreuzung_cooldown  = 0;

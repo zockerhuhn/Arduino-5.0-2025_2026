@@ -130,7 +130,8 @@ void setup()
   motors.flipRightMotor(true); // nur notwendig, wenn man true reinschreibt
 
 
-  debug = LOG_NOTHING;
+  debug = LOG_LINE;
+  bigState = DRIVING;
 }
 
 #include "Reflectance.h" // commands for reading and processing reflectionsensor
@@ -144,216 +145,344 @@ void setup()
 
 void loop()
 {
-  if (no_line_cycle_count >= 0)
-  {
-    Serial.println("opfer");
-    opfer();
-    digitalWrite(LEDR, LOW);
-    digitalWrite(LEDG, LOW);
-    digitalWrite(LEDB, LOW);
-    no_line_cycle_count = 0;
-    straight();
-    delay(3000);
-  }
-
-  // Serial.print(digitalRead(calibrationPin));Serial.print("\t");Serial.print(digitalRead(motorPin));;Serial.print("\n");
-
-  if (digitalRead(calibrationPin))
-  {
-    delay(250);
-    if (digitalRead(calibrationPin)) {
-      stop();
-      for (int i = 0; i < 5; i++)
-      { // 5x blinken (AN/AUS):
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(250);
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(250);
-      }
-      // Calibrating should word by calculating an average from multiple values
-      average_r = average_g = average_b = average_c = average_r2 = average_g2 = average_b2 = average_c2 = 0;
-      int total_cycles = 10;
-      for (int i = 0; i < total_cycles; i++) 
-      {
-        readColor();
-        readColor2();
-
-        average_r += red;
-        average_g += green;
-        average_b += blue;
-        average_c += brightness;
-
-        average_r2 += red2;
-        average_g2 += green2;
-        average_b2 += blue2;
-        average_c2 += brightness2;
-      }
-      // calculate average values for both sensors
-      average_r /= total_cycles;
-      average_g /= total_cycles;
-      average_b /= total_cycles;
-      average_c /= total_cycles;
-      average_r2 /= total_cycles;
-      average_g2 /= total_cycles;
-      average_b2 /= total_cycles;
-      average_c2 /= total_cycles;
-      
-      // idea: calculate the ratio instead!
-      blueGreenThreshold = average_g - average_b - 200;
-      blueGreenThreshold2 = average_g2 - average_b2 - 200;
-      redGreenThreshold = average_g - average_r - 200;
-      redGreenThreshold2 = average_g2 - average_r2 - 200;
-
-      colorBrightMaxThreshold = max(brightness, brightness2) + 1500;
-      colorBrightMinThreshold = min(brightness, brightness2) - 300;
-
-      // 738 886 767 2399
-
-      Serial.println("Values: " + String(average_r) + " " + String(average_g) + " " + String(average_b)+ " " + String(average_r2) + " " + String(average_g2) + " " + String(average_b2) + " " + String(brightness)+ " " + String(brightness2));
-      Serial.println("Thresholds: " + String(blueGreenThreshold) + " " + String(redGreenThreshold) + " " + String(blueGreenThreshold2) + " " + String(redGreenThreshold2) + " " + String(colorBrightMaxThreshold)+ " " + String(colorBrightMinThreshold));
-
-      // Serial.println("red vals: " + String(red) + " " + String(green) + " " + String(blue) + " " + String(brightness) + "\t " + String(red2) + " " + String(green2) + " " + String(blue2) + " " + String(brightness2));
-      Serial.println(String(isGreen()) + " " + String(isGreen2()));
-      // 5x blinken (AN/AUS):
-      for (int i = 0; i < 5; i++)
-      {
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(250);
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(250);
-      }
-    }
-  }
-
-   if (digitalRead(motorPin)) {
-    delay(100);
-    
-    // Reset LEDs
-    digitalWrite(LED_BUILTIN, LOW);
-    digitalWrite(LEDR, LOW);
-    digitalWrite(LEDG, LOW);
-    digitalWrite(LEDB, LOW);
-
-    // Set distance array to invalid value
-    for (int i = 0; i < 5; i++) distance_array[i] = 65535;
-
-    // Reset colour:
-    for (int i = 0; i < 4; i++) old_colour[i] = 0;
-    for (int i = 0; i < 4; i++) old_colour2[i] = 0;
-
-
-    // Debugging
-    switch (debug) {
-      case LOG_NOTHING:
-        break;
-
-      case LOG_DISTANCE: 
-        readDistance();
-        logDistance();
-        break;
+  switch (bigState) {
+    case CALIBRATION:
+      // Calibration 
+      delay(250);
+      if (digitalRead(calibrationPin)) {
+        stop();
+        for (int i = 0; i < 5; i++) { // 5x blinken (AN/AUS):
+          digitalWrite(LED_BUILTIN, HIGH);
+          delay(250);
+          digitalWrite(LED_BUILTIN, LOW);
+          delay(250);
+        }
+        // Calibrating should word by calculating an average from multiple values
+        average_r = average_g = average_b = average_c = average_r2 = average_g2 = average_b2 = average_c2 = 0;
+        int total_cycles = 10;
+        for (int i = 0; i < total_cycles; i++) {
+          readColor();
+          readColor2();
+  
+          average_r += red;
+          average_g += green;
+          average_b += blue;
+          average_c += brightness;
+  
+          average_r2 += red2;
+          average_g2 += green2;
+          average_b2 += blue2;
+          average_c2 += brightness2;
+        }
+        // calculate average values for both sensors
+        average_r /= total_cycles;
+        average_g /= total_cycles;
+        average_b /= total_cycles;
+        average_c /= total_cycles;
+        average_r2 /= total_cycles;
+        average_g2 /= total_cycles;
+        average_b2 /= total_cycles;
+        average_c2 /= total_cycles;
         
-      case LOG_COLOUR: 
+        // idea: calculate the ratio instead!
+        blueGreenThreshold = average_g - average_b - 200;
+        blueGreenThreshold2 = average_g2 - average_b2 - 200;
+        redGreenThreshold = average_g - average_r - 200;
+        redGreenThreshold2 = average_g2 - average_r2 - 200;
+  
+        colorBrightMaxThreshold = max(brightness, brightness2) + 1500;
+        colorBrightMinThreshold = min(brightness, brightness2) - 300;
+  
+        // 738 886 767 2399
+  
+        Serial.println("Values: " + String(average_r) + " " + String(average_g) + " " + String(average_b)+ " " + String(average_r2) + " " + String(average_g2) + " " + String(average_b2) + " " + String(brightness)+ " " + String(brightness2));
+        Serial.println("Thresholds: " + String(blueGreenThreshold) + " " + String(redGreenThreshold) + " " + String(blueGreenThreshold2) + " " + String(redGreenThreshold2) + " " + String(colorBrightMaxThreshold)+ " " + String(colorBrightMinThreshold));
+  
+        // Serial.println("red vals: " + String(red) + " " + String(green) + " " + String(blue) + " " + String(brightness) + "\t " + String(red2) + " " + String(green2) + " " + String(blue2) + " " + String(brightness2));
+        Serial.println(String(isGreen()) + " " + String(isGreen2()));
+        // 5x blinken (AN/AUS):
+        for (int i = 0; i < 5; i++) {
+          digitalWrite(LED_BUILTIN, HIGH);
+          delay(250);
+          digitalWrite(LED_BUILTIN, LOW);
+          delay(250);
+        }
+      }
+      break;
+
+    case STOP:
+      readColor();
+      readColor2();
+      if (isRed()) {
+        digitalWrite(LEDR, HIGH);
+        // TODO implement waiting 8 seconds with Chrono or smthng
+      }
+      else {
+        delay(100);
+      
+        // Reset LEDs
+        digitalWrite(LED_BUILTIN, LOW);
+        digitalWrite(LEDR, LOW);
+        digitalWrite(LEDG, LOW);
+        digitalWrite(LEDB, LOW);
+
+        // Set distance array to invalid value
+        for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+
+        // Reset colour:
+        for (int i = 0; i < 4; i++) old_colour[i] = 0;
+        for (int i = 0; i < 4; i++) old_colour2[i] = 0;
+
+        // Debugging
+        switch (debug) {
+          case LOG_NOTHING:
+            break;
+
+          case LOG_DISTANCE: 
+            readDistance();
+            logDistance();
+            break;
+            
+          case LOG_COLOUR: 
+            readColor();
+            readColor2();
+            Serial.println("red vals: " + String(red) + " " + String(green) + " " + String(blue) + " " + String(brightness) + "\t " + String(red2) + " " + String(green2) + " " + String(blue2) + " " + String(brightness2)  + "\t" + String(colorBrightMaxThreshold + 800));
+            for (int i = 0; i < 4; i++) Serial.print(String(old_colour[i]) + " ");
+            Serial.print("\t");
+            for (int i = 0; i < 4; i++) Serial.print(String(old_colour2[i]) + " ");
+            Serial.print("\t");
+            Serial.print(String(isRed() && isRed2()) + " " + String(brightness <= colorBrightMaxThreshold + 800 || brightness2 <= colorBrightMaxThreshold + 800) + " ");
+            if ((isRed() && isRed2()) && (brightness <= colorBrightMaxThreshold + 800 || brightness2 <= colorBrightMaxThreshold + 800)) Serial.print("REEEEEEEEED");
+            Serial.println();
+            break;
+
+          case LOG_REFLECTANCE: 
+            logReflection();
+            break;
+
+          case LOG_LINE: 
+            switch (calculateReflection()) {
+              case sideRightLine:
+                Serial.println("sideRightLine");
+                break;
+              case sideLeftLine:
+                Serial.println("sideLeftLine");
+                break;
+              case hardLeftLine:
+                Serial.println("hardLeftLine");
+                break;
+              case hardRightLine:
+                Serial.println("hardRightLine");
+                break;
+              case leftLine:
+                Serial.println("leftLine");
+                break;
+              case rightLine:
+                Serial.println("rightLine");
+                break;
+              case frontalLine:
+                Serial.println("frontalLine");
+                break;
+              case extremeLine:
+                Serial.println("extremeLine");
+                break;
+              case normalLine:
+                Serial.println("normalLine");
+                break;
+              case noLine:
+                Serial.println("noLine");
+                break;              
+            }
+            break;
+        }
+        
         readColor();
         readColor2();
-        Serial.println("red vals: " + String(red) + " " + String(green) + " " + String(blue) + " " + String(brightness) + "\t " + String(red2) + " " + String(green2) + " " + String(blue2) + " " + String(brightness2)  + "\t" + String(colorBrightMaxThreshold + 800));
-        for (int i = 0; i < 4; i++) Serial.print(String(old_colour[i]) + " ");
-        Serial.print("\t");
-        for (int i = 0; i < 4; i++) Serial.print(String(old_colour2[i]) + " ");
-        Serial.print("\t");
-        Serial.print(String(isRed() && isRed2()) + " " + String(brightness <= colorBrightMaxThreshold + 800 || brightness2 <= colorBrightMaxThreshold + 800) + " ");
-        if ((isRed() && isRed2()) && (brightness <= colorBrightMaxThreshold + 800 || brightness2 <= colorBrightMaxThreshold + 800)) Serial.print("REEEEEEEEED");
-        Serial.println();
-        break;
+        if (!digitalRead(motorPin) && !isRed()) {
+          bigState = DRIVING;
+        }
+        if (digitalRead(calibrationPin)) {
+          bigState = CALIBRATION;
+        }        
+      }
+      break;
 
-      case LOG_REFLECTANCE: 
-        logReflection();
-        break;
+    case OPFER:
+      Serial.println("opfer");
+      digitalWrite(LEDR, LOW);
+      digitalWrite(LEDG, LOW);
+      digitalWrite(LEDB, LOW);
+      no_line_cycle_count = 0;
+      opfer();
+      bigState = DRIVING;
 
-      case LOG_LINE: 
-        Serial.println("Seen line: " + calculateReflection());
-        break;
-    }
-  }
+    case DRIVING:
+      if (digitalRead(calibrationPin)) {
+        bigState = CALIBRATION;
+      }
+      if (digitalRead(motorPin)) {
+        bigState = STOP;
+      }
+      if (no_line_cycle_count >= 35) {
+        bigState = OPFER;
+        break; // Jump prematurely out of the switch-case
+      }
 
-  else {
-    redHandling();
+      // if (left_line_cycle_count > right_line_cycle_count) {
+      //   digitalWrite(LEDR, HIGH);
+      //   digitalWrite(LEDG, HIGH);
+      //   digitalWrite(LEDB, LOW);
+      // }
+      // if (right_line_cycle_count > left_line_cycle_count) {
+      //   digitalWrite(LEDR, HIGH);
+      //   digitalWrite(LEDG, LOW);
+      //   digitalWrite(LEDB, HIGH);
+      // }
+      // if (left_line_cycle_count == right_line_cycle_count) {
+      //   digitalWrite(LEDR, LOW);
+      //   digitalWrite(LEDG, LOW);
+      //   digitalWrite(LEDB, LOW);
+      // }
 
-    // if (last_side == LEFT_SIDE) {
-    //   digitalWrite(LEDR, HIGH);
-    //   digitalWrite(LEDG, HIGH);
-    //   digitalWrite(LEDB, LOW);
-    // }
-    // if (last_side == RIGHT_SIDE) {
-    //   digitalWrite(LEDR, HIGH);
-    //   digitalWrite(LEDG, LOW);
-    //   digitalWrite(LEDB, HIGH);
-    // }
-    // if (last_side == MIDDLE) {
-    //   digitalWrite(LEDR, LOW);
-    //   digitalWrite(LEDG, LOW);
-    //   digitalWrite(LEDB, LOW);
-    // }
+      readDistance();
+      if (distance_val <= obstacle_threshold) {
+        abstand_umfahren(); // TODO stateify abstand
+      }
+      switch (state) {
+        case crossing:
+          if (left_line_cycle_count > right_line_cycle_count) kreuzung(-1);
+          if (right_line_cycle_count > left_line_cycle_count) kreuzung(1);
+          else kreuzung(0); // TODO stateify kreuzung
+          left_line_cycle_count = 0;
+          right_line_cycle_count = 0;
+          state = straight_driving;
+          break;
 
-    readDistance();
-    if (distance_val <= obstacle_threshold) {
-      abstand_umfahren();
-    }
+        case straight_driving:
+          calculatedReflection = calculateReflection();
 
-    calculatedReflection = calculateReflection(); // read the reflectionsensor and save the result in a variable to avoid changing values while processing
-    Serial.println(calculatedReflection); 
-    if (calculatedReflection != "noLine") no_line_cycle_count = 0;
+          if (calculatedReflection != noLine) {
+            no_line_cycle_count = 0;
+            if (left_line_cycle_count >= 1) {
+              left_line_cycle_count--;
+            }
+            if (right_line_cycle_count >= 1) {
+              right_line_cycle_count--;
+            } 
+          }
 
-    if (calculatedReflection == "frontalLine") { // detected crosssection 
-      if (last_side == LEFT_SIDE) kreuzung(-1);
-      if (last_side == RIGHT_SIDE) kreuzung(1);
-      else kreuzung(0);
-      last_side = MIDDLE;
-    }
+          if (calculatedReflection != normalLine) {
+            switch (calculatedReflection) {
+              case frontalLine:
+                state = crossing;
+                break;
+  
+              case leftLine: // TODO find out how to group cases
+                state = turn_left_to_line;
+                break;
+              case hardLeftLine:
+                state = turn_left_to_line;
+                break;
+  
+              case rightLine:
+                state = turn_right_to_line;
+                break;
+              case hardRightLine:
+                state = turn_right_to_line;
+                break;
+  
+              case sideLeftLine:
+                state = left_side;
+                break;
+              case sideRightLine:
+                state = right_side;
+                break;
+  
+              case noLine:
+                no_line_cycle_count++;
+                break;
+            }
+            break; // Exit out from straight driving early
+          } else {
+            straight(2);
+          }
 
-    else if (calculatedReflection == "sideLeftLine") {
-      last_side = LEFT_SIDE;
-      straight_left(1.2);
-    }
+          break;
+        
+        case turn_left_to_line:
+          left_line_cycle_count++;
+          left_to_line(1.6);
+          break;  
 
-    else if (calculatedReflection == "sideRightLine") {
-      last_side = RIGHT_SIDE;
-      straight_right(1.2);
-    }
+        case turn_right_to_line:
+          right_line_cycle_count++;
+          right_to_line(1.6);
+          break;
 
-    else if (calculatedReflection == "normalLine") { // detected normal line
-      last_side = MIDDLE;
-      straight(2);
-    }
+        case left_side:
+        // PROBLEM!!!!! Seems to be that not aaaaalways side triggers at t-crossings
+          digitalWrite(LED_BUILTIN, HIGH);
+          left_line_cycle_count++;
+          straight_left(1.2);
 
-    else if (calculatedReflection == "leftLine") { // detected a slight left line
-      last_side = LEFT_SIDE;
-      left_to_line(1.6);
-    }
+          // Check for black on the other side
+          readReflection();
+          while (reflectance_array[0] < reflectionBlackThreshold && reflectance_array[1] < reflectionBlackThreshold) {
+            calculatedReflection = calculateReflection();
+            if (calculatedReflection == normalLine) {
+              break;
+            }
+            // Check for green left
+            readColor2();
+            if (isGreen2()) {
+              digitalWrite(LEDB, HIGH);
+              left(90, 1.8);
+              digitalWrite(LEDB, LOW);
+              break;
+            }
+          }
 
-    else if (calculatedReflection == "rightLine") { // detected a slight right line
-      last_side = RIGHT_SIDE;
-      right_to_line(1.6);
-    }
+          digitalWrite(LED_BUILTIN, LOW);
+          state = straight_driving;
+          break;
 
-    else if (calculatedReflection == "hardleftLine") { // detected a hard left line
-      last_side = LEFT_SIDE;
-      left_to_line(1.6);
-    }
+        case right_side:
+          digitalWrite(LED_BUILTIN, HIGH);
+          right_line_cycle_count++;
+          straight_right(1.2);
 
-    else if (calculatedReflection == "hardrightLine") { // detected a hard right line
-      last_side = RIGHT_SIDE;
-      right_to_line(1.6);
-    }
+          // Check for black on the other side
+          readReflection();
+          while (reflectance_array[5] < reflectionBlackThreshold && reflectance_array[4] < reflectionBlackThreshold) {
+            calculatedReflection = calculateReflection();
+            if (calculatedReflection == normalLine) {
+              break;
+            }
+            // Check for green right
+            readColor();
+            if (isGreen()) {
+              digitalWrite(LEDG, HIGH);
+              right(90, 1.8);
+              digitalWrite(LEDG, LOW);
+              break;
+            }
+            
+          }
 
-    else if (calculatedReflection == "noLine") {// no line detected
-      last_side = MIDDLE;
-      // Serial.print("\n");
-      // Serial.print("keine Linie...");
-      straight(2);
-      no_line_cycle_count++;
-    }
+          digitalWrite(LED_BUILTIN, LOW);
+          state = straight_driving;
+          break;
+      }
 
-    delay(10); // don't max out processor
+      readColor();
+      readColor2();
+      if (isRed()) {
+        stop();
+        bigState = STOP;
+      }
+
+      delay(10); // don't max out processor
+      break;
   }
 }
 //gyatt

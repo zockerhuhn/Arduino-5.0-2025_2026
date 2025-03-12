@@ -13,44 +13,39 @@ void logReflection() { // print reflection sensor values
 void readReflection() { //read reflectionsensor
   reflectanceSensor.read(reflectance_array);
 }
- 
 
-String calculateReflection() { //read reflection and return processed result 
+
+Reflections calculateReflection() { //read reflection and return processed result 
   readReflection();
   // logReflection();
-  if ((reflectance_array[0] >= reflectionBlackThreshold || reflectance_array[1] >= reflectionBlackThreshold) && (reflectance_array[5] >= reflectionBlackThreshold || reflectance_array[4] >= reflectionBlackThreshold))
-  {
-    return "frontalLine";
+  if ((reflectance_array[0] >= reflectionBlackThreshold && (reflectance_array[1] >= reflectionBlackThreshold || reflectance_array[2] >= reflectionBlackThreshold)) && (reflectance_array[5] >= reflectionBlackThreshold && (reflectance_array[4] >= reflectionBlackThreshold || reflectance_array[3] >= reflectionBlackThreshold))) {
+    return frontalLine;
   }
-  else if ((reflectance_array[0] >= reflectionBlackThreshold && reflectance_array[1] >= reflectionBlackThreshold && reflectance_array[2] >= reflectionBlackThreshold))
-  {
-    return "sideRightLine";
+  else if ((reflectance_array[0] >= reflectionBlackThreshold || reflectance_array[1] >= reflectionBlackThreshold) && (reflectance_array[5] >= reflectionBlackThreshold || reflectance_array[4] >= reflectionBlackThreshold)) {
+    return extremeLine;
+  }
+  else if ((reflectance_array[0] >= reflectionBlackThreshold && reflectance_array[1] >= reflectionBlackThreshold && reflectance_array[2] >= reflectionBlackThreshold)) {
+    return sideRightLine;
   }
   else if ((reflectance_array[3] >= reflectionBlackThreshold && reflectance_array[4] >= reflectionBlackThreshold && reflectance_array[5] >= reflectionBlackThreshold)) {
-    return "sideLeftLine";
+    return sideLeftLine;
   }
-  else if (reflectance_array[5] >= reflectionBlackThreshold)
-  {
-    return "hardleftLine";
+  else if (reflectance_array[5] >= reflectionBlackThreshold) {
+    return hardLeftLine;
   }
-  else if (reflectance_array[0] >= reflectionBlackThreshold)
-  {
-    return "hardrightLine";
+  else if (reflectance_array[0] >= reflectionBlackThreshold) {
+    return hardRightLine;
   }
-  else if (reflectance_array[4] >= reflectionBlackThreshold)
-  {
-    return "leftLine";
+  else if (reflectance_array[4] >= reflectionBlackThreshold) {
+    return leftLine;
   }
-  else if (reflectance_array[1] >= reflectionBlackThreshold)
-  {
-    return "rightLine";
+  else if (reflectance_array[1] >= reflectionBlackThreshold) {
+    return rightLine;
   }
-  else if ((reflectance_array[2] >= reflectionBlackThreshold) || (reflectance_array[3] >= reflectionBlackThreshold))
-  {
-    return "normalLine";
+  else if ((reflectance_array[2] >= reflectionBlackThreshold) || (reflectance_array[3] >= reflectionBlackThreshold)) {
+    return normalLine;
   }
-  else
-  {
-    return "noLine";
+  else {
+    return noLine;
   }
 }
