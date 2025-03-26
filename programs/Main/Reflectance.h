@@ -17,12 +17,9 @@ void readReflection() { //read reflectionsensor
 
 Reflections calculateReflection() { //read reflection and return processed result 
   readReflection();
-  // logReflection();
+  logReflection();
   if ((reflectance_array[0] >= reflectionBlackThreshold && (reflectance_array[1] >= reflectionBlackThreshold || reflectance_array[2] >= reflectionBlackThreshold)) && (reflectance_array[5] >= reflectionBlackThreshold && (reflectance_array[4] >= reflectionBlackThreshold || reflectance_array[3] >= reflectionBlackThreshold))) {
     return frontalLine;
-  }
-  else if ((reflectance_array[0] >= reflectionBlackThreshold || reflectance_array[1] >= reflectionBlackThreshold) && (reflectance_array[5] >= reflectionBlackThreshold || reflectance_array[4] >= reflectionBlackThreshold)) {
-    return extremeLine;
   }
   else if ((reflectance_array[0] >= reflectionBlackThreshold && reflectance_array[1] >= reflectionBlackThreshold && reflectance_array[2] >= reflectionBlackThreshold)) {
     return sideRightLine;

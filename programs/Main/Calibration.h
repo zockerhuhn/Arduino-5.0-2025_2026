@@ -6,7 +6,7 @@ int redGreenThreshold = 130; // Minimum distance from red for green values
 int blueGreenThreshold2 = 2; // Minimum distance from blue for green values
 int redGreenThreshold2 = 126; // Minimum distance from red for green values
 
-int reflectionBlackThreshold = 2000; // ursprünglich 1700, aber mit 2000 wird grün nicht mehr als schwarz erkannt
+int reflectionBlackThreshold = 2100; // ursprünglich 1700, aber mit 2100 wird grün nicht mehr als schwarz erkannt
 
 /* Liegt der Arduino gerade auf dem Tisch und wird nicht bewegt, muss die Z-Achse 1G (Erdbeschleunigung) ausgeben und der Rest muss 0 sein.
    Das ist nicht wirklich so und wird mit diesen Werten kalibriert: */

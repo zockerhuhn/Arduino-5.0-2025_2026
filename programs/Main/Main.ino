@@ -130,7 +130,7 @@ void setup()
   motors.flipRightMotor(true); // nur notwendig, wenn man true reinschreibt
 
 
-  debug = LOG_LINE;
+  debug = LOG_REFLECTANCE;
   bigState = DRIVING;
 }
 
@@ -211,6 +211,7 @@ void loop()
       break;
 
     case STOP:
+      stop();
       readColor();
       readColor2();
       if (isRed()) {
@@ -257,6 +258,7 @@ void loop()
             break;
 
           case LOG_REFLECTANCE: 
+            readReflection();
             logReflection();
             break;
 
@@ -282,9 +284,6 @@ void loop()
                 break;
               case frontalLine:
                 Serial.println("frontalLine");
-                break;
-              case extremeLine:
-                Serial.println("extremeLine");
                 break;
               case normalLine:
                 Serial.println("normalLine");
@@ -423,24 +422,44 @@ void loop()
         // PROBLEM!!!!! Seems to be that not aaaaalways side triggers at t-crossings
           digitalWrite(LED_BUILTIN, HIGH);
           left_line_cycle_count++;
-          straight_left(1.2);
+          straight(1.6);
+          readReflection();
+          while (reflectance_array[5] > reflectionBlackThreshold && reflectance_array[4] > reflectionBlackThreshold) {
+            readReflection();
+          }
+          delay(200);
+          left();
 
           // Check for black on the other side
           readReflection();
-          while (reflectance_array[0] < reflectionBlackThreshold && reflectance_array[1] < reflectionBlackThreshold) {
-            calculatedReflection = calculateReflection();
-            if (calculatedReflection == normalLine) {
+          logReflection();
+          while (reflectance_array[0] < reflectionBlackThreshold - 200 && reflectance_array[1] < reflectionBlackThreshold - 200) /*reduce threshold by 200 because it SHOULD be more sensitive, since only white should be there*/ {
+            // Read the data
+            readReflection();
+            readColor();
+            readColor2();
+            // log stuff
+            logReflection();
+            Serial.println(String(red2) + " " + String(green2) + " " + String(blue2) + " " + String(isGreen2()));
+            // Check for green right
+            if (isGreen()) {
+              digitalWrite(LEDG, HIGH);
+              right(90, 1.8);
+              digitalWrite(LEDG, LOW);
               break;
             }
-            // Check for green left
-            readColor2();
             if (isGreen2()) {
               digitalWrite(LEDB, HIGH);
               left(90, 1.8);
               digitalWrite(LEDB, LOW);
               break;
             }
+            if (digitalRead(motorPin)) {
+              bigState = STOP;
+              break;
+            }
           }
+          Serial.println();
 
           digitalWrite(LED_BUILTIN, LOW);
           state = straight_driving;
@@ -449,25 +468,44 @@ void loop()
         case right_side:
           digitalWrite(LED_BUILTIN, HIGH);
           right_line_cycle_count++;
-          straight_right(1.2);
+          straight(1.6);
+          readReflection(); // not quite straight enough
+          while (reflectance_array[0] > reflectionBlackThreshold && reflectance_array[1] > reflectionBlackThreshold) {
+            readReflection();
+          }
+          delay(200);
+          right();
 
           // Check for black on the other side
           readReflection();
-          while (reflectance_array[5] < reflectionBlackThreshold && reflectance_array[4] < reflectionBlackThreshold) {
-            calculatedReflection = calculateReflection();
-            if (calculatedReflection == normalLine) {
-              break;
-            }
-            // Check for green right
+          logReflection();
+          while (reflectance_array[5] < reflectionBlackThreshold - 200 && reflectance_array[4] < reflectionBlackThreshold - 200) {
+            // Read the data
+            readReflection();
             readColor();
+            readColor2();
+            // log stuff
+            logReflection();
+            Serial.println(String(red) + " " + String(green) + " " + String(blue) + " " + String(isGreen()));
+            // Check for green
             if (isGreen()) {
               digitalWrite(LEDG, HIGH);
               right(90, 1.8);
               digitalWrite(LEDG, LOW);
               break;
             }
-            
+            if (isGreen2()) {
+              digitalWrite(LEDB, HIGH);
+              left(90, 1.8);
+              digitalWrite(LEDB, LOW);
+              break;
+            }
+            if (digitalRead(motorPin)) {
+              bigState = STOP;
+              break;
+            }
           }
+          Serial.println();
 
           digitalWrite(LED_BUILTIN, LOW);
           state = straight_driving;
@@ -481,7 +519,7 @@ void loop()
         bigState = STOP;
       }
 
-      delay(10); // don't max out processor
+      delay(1); // don't max out processor
       break;
   }
 }

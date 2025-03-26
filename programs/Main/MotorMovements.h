@@ -117,8 +117,14 @@ void left_to_line(float speed = 1, int turnBy = 70) {
     } else if (calculatedReflection == rightLine) {
       straight_right();
       break;
+    } else if (calculatedReflection == sideLeftLine) {
+      state = left_side;
+      break;
+    } else if (calculatedReflection == sideRightLine) {
+      state = right_side;
+      break;
     }
-    if (((initialDirection + turnBy) % 360) == direction) {
+    if ((((initialDirection - turnBy) + 360) % 360) == direction) {
       break;
     }
 
@@ -149,6 +155,13 @@ void right_to_line(float speed = 1, int turnBy = 70) {
       break;
     } else if (calculatedReflection == rightLine) {
       straight_right();
+      break;
+    }
+    else if (calculatedReflection == sideLeftLine) {
+      state = left_side;
+      break;
+    } else if (calculatedReflection == sideRightLine) {
+      state = right_side;
       break;
     }
     if (((initialDirection + turnBy) % 360) == direction) {
