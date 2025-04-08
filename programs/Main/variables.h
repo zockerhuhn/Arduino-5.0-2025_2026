@@ -1,13 +1,8 @@
-//REFLEKTIONSSENSOREN
-int varrechts = 0;
-int varlinks = 0;
-const uint8_t SENSOR_BAR_NUM_SENSORS = 6;
-const uint8_t SENSOR_BAR_PINS[] = {D6, D0, D1, D7, D8, D9};
-// hier speichern wir die 6 Reflektionssensorwerte ab:
-uint16_t reflectance_array[SENSOR_BAR_NUM_SENSORS];
-QTRSensors reflectanceSensor = QTRSensors();
+// CAMERA
 
-enum Reflections {
+
+// Lines
+enum Lines {
   sideRightLine,
   sideLeftLine,
   hardLeftLine,
@@ -19,25 +14,7 @@ enum Reflections {
   normalLine,
   noLine,
 };
-
-Reflections calculatedReflection;
-// hier speichern wir die Farbsensorwerte ab:
-// Roh-Werte (Es gibt auch kalibierte Werte, aber die sind sehr langsam auszulesen):
-uint16_t red, green, blue, brightness;
-uint16_t red2, green2, blue2, brightness2;
-
-uint16_t old_colour[4];
-uint16_t old_colour2[4];
-
-//FARBSENSOREN
-/** Sensor sehr schnell einstellen (ungenauer):
- *  Gain 4x fand ich am besten, aber dann sind die Werte so stabil,
- *  dass die Fehlerdetektion immer ausgelöst hat (siehe unten "helligkeitStatischStoppuhr.hasPassed"). */
-Adafruit_TCS34725 rgbSensor = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_60MS, TCS34725_GAIN_4X);
-Adafruit_TCS34725 rgbSensor2 = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_60MS, TCS34725_GAIN_4X);
-
-// Declaring values for calibration, will be reset
-uint16_t average_r, average_g, average_b, average_c,  average_r2, average_g2, average_b2, average_c2;
+Lines calculatedReflection;
 
 //MOTOREN
 // Dieses Objekt repräsentiert 2 Motor-Kanäle (1..2 Motoren pro Kanal):
@@ -65,13 +42,11 @@ int opfer_wall_threshold = 100;
 uint16_t direction;
 uint16_t current_direction;
 
-
 // State machine
 enum BigState {
   OPFER,
   DRIVING,
   STOP,
-  CALIBRATION,
 };
 BigState bigState;
 
@@ -82,8 +57,6 @@ enum State {
   turn_right_to_line,
   turn_left_90,
   turn_right_90,
-  left_side,
-  right_side,
 };
 State state = straight_driving;
 
@@ -96,9 +69,6 @@ enum DebugMode {
   LOG_LINE,
 };
 enum DebugMode debug = LOG_NOTHING;
-
-// Kreuzungslogic
-int last_kreuzung = 0; // TODO implement this so kreuzung doesn't trigger immediately after another kreuzung
 
 // Opferlogic
 int no_line_cycle_count = 0;
