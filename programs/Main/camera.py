@@ -107,9 +107,9 @@ while True:
     # top ROI
     blob_array_top = [False] * len(top_roi)
     top_values = find_avg_center(top_roi, blob_array_top)
-    centroid_sum_x, centroid_sum_y, weight_sum = top_values
+    centroid_sum_x, centroid_sum_y, weight_sum_top = top_values
 
-    if weight_sum:
+    if weight_sum_top:
         # Calculate the slope of that line
         #top_line_angle = calculate_line_slope((first_blob.cx(), first_blob.cy()), (last_blob.cx(), last_blob.cy()))
         #if top_line_angle != None:
@@ -119,15 +119,15 @@ while True:
         # Draw the average center cross
         img.draw_cross(centroid_sum_x, centroid_sum_y, angled_line_color, size=10)
 
-    top_center_pos = (centroid_sum_x, centroid_sum_y)
+        top_center_pos = (centroid_sum_x, centroid_sum_y)
 
 
     # mid ROI
     blob_array_mid = [False] * len(mid_roi)
     mid_values = find_avg_center(mid_roi, blob_array_mid)
-    centroid_sum_x, centroid_sum_y, weight_sum = mid_values
+    centroid_sum_x, centroid_sum_y, weight_sum_mid = mid_values
 
-    if weight_sum:
+    if weight_sum_mid:
         #mid_line_angle = calculate_line_slope((first_blob.cx(), first_blob.cy()), (last_blob.cx(), last_blob.cy()))
         #if mid_line_angle != None:
         #    if mid_line_angle > math.pi / 3 and span >= 6:
@@ -135,20 +135,20 @@ while True:
 
         img.draw_cross(centroid_sum_x, centroid_sum_y, angled_line_color, size=10)
 
-    mid_center_pos = (centroid_sum_x, centroid_sum_y)
+        mid_center_pos = (centroid_sum_x, centroid_sum_y)
 
 
     # Combining knowledge
+    if weight_sum_top and weight_sum_mid:
+        img.draw_line(*mid_center_pos, *top_center_pos, color=angled_line_color, thickness=2)
 
-    img.draw_line(*mid_center_pos, *top_center_pos, color=angled_line_color, thickness=2)
-
-    line_angle_rad = calculate_line_slope(mid_center_pos, top_center_pos)
-    """
-    if line_angle_rad != None:
-        print("Winkel", math.degrees(line_angle_rad))
-    else:
-        print("Linie hat keine Länge!")
-    """
+        line_angle_rad = calculate_line_slope(mid_center_pos, top_center_pos)
+        """
+        if line_angle_rad != None:
+            print("Winkel", math.degrees(line_angle_rad))
+        else:
+            print("Linie hat keine Länge!")
+        """
 
     vertical_line_array = [0] * len(vertical_line_array)
     for i, top_blob in enumerate(blob_array_top):
@@ -178,7 +178,6 @@ while True:
             total_length += down_line_length
         vertical_line_pos /= total_length
         #print(vertical_line_pos)
-        img.draw_line(int((vertical_line_pos + 0.5) * width / num_kreuzung_segments), 0, int((vertical_line_pos + 0.5) * width / num_kreuzung_segments), height, color = (0,0,0), thickness = 3)
 
         """
         first_line_pos = None
@@ -199,32 +198,35 @@ while True:
         # we know where the split must approximately be the location
         # of the vertical lines we just found
 
-        # TODO FIX
-        if abs((vertical_line_pos % 1) - 0.5) < 0.25:
-            vertical_line_range = (math.floor(vertical_line_pos + 0.5), math.ceil(vertical_line_pos + 0.5))
-        else:
-            vertical_line_range = (int(vertical_line_pos), int(vertical_line_pos))
+        #if abs((vertical_line_pos % 1) - 0.5) < 0.25:
+        #    vertical_line_range = (math.floor(vertical_line_pos + 0.5), math.ceil(vertical_line_pos + 0.5))
+        vertical_line_range = (math.floor(vertical_line_pos), math.ceil(vertical_line_pos))
 
         #print(vertical_line_range)
+        #img.draw_line(int((vertical_line_pos + 0.5) * width / num_kreuzung_segments), 0, int((vertical_line_pos + 0.5) * width / num_kreuzung_segments), height, color = blob_color, thickness = 3)
+        img.draw_line(int((vertical_line_range[0] + 0.5) * width / num_kreuzung_segments), 0, int((vertical_line_range[0] + 0.5) * width / num_kreuzung_segments), height, color = blob_color, thickness = 3)
+        img.draw_line(int((vertical_line_range[1] + 0.5) * width / num_kreuzung_segments), 0, int((vertical_line_range[1] + 0.5) * width / num_kreuzung_segments), height, color = blob_color, thickness = 3)
 
-    # Find split from the line
+        # Find split from the line
 
-    # First find if a line exists left of the range
-    left_line_length = 0
-    for i in range(vertical_line_range[0], 0, -1):
-        if blob_array_top[i] and blob_array_top[i-1]:
-            left_line_length += 1
+        # First find if a line exists left of the range
+        left_line_length = 0
+        for i in range(vertical_line_range[0], 0, -1):
+            if blob_array_top[i] and blob_array_top[i-1]:
+                left_line_length += 1
 
 
-    # Then find if a line exists right of the range
-    right_line_length = 0
-    for i in range(vertical_line_range[1] + 1, num_kreuzung_segments):
-        if blob_array_top[i - 1] and blob_array_top[i]:
-            right_line_length += 1
+        # Then find if a line exists right of the range
+        right_line_length = 0
+        for i in range(vertical_line_range[1] + 1, num_kreuzung_segments):
+            if blob_array_top[i - 1] and blob_array_top[i]:
+                right_line_length += 1
 
-    #print(left_line_length, right_line_length)
-    if left_line_length >= 2 and right_line_length >= 2:
-        print("Kreuzung mit Linie bei", vertical_line_range)
+        #print(left_line_length, right_line_length)
+        if left_line_length >= 2 and right_line_length >= 2:
+            print("Kreuzung mit Linie bei", vertical_line_range)
+        else:
+            print("Keine Kreuzung gefunden.")
 
     #print(clock.fps())  # Note: Your OpenMV Cam runs about half as fast while
     # connected to your computer. The FPS should increase once disconnected.
