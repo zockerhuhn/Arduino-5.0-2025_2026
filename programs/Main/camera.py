@@ -56,9 +56,10 @@ def find_avg_center(roi, blob_array):
         img.draw_rectangle(*r, color=(255,0,0))
         if blobs:
             best_blob = max(blobs, key=lambda b: b.pixels())
-            if best_blob.pixels() > pixel_threshold and show_blob_info:
-                img.draw_edges(best_blob.min_corners(), blob_color)
-                img.draw_cross(best_blob.cx(), best_blob.cy(), blob_color)
+            if best_blob.pixels() > pixel_threshold:
+                if show_blob_info:
+                    img.draw_edges(best_blob.min_corners(), blob_color)
+                    img.draw_cross(best_blob.cx(), best_blob.cy(), blob_color)
                 blob_array[i] = best_blob
 
     centroid_sum_x = 0
