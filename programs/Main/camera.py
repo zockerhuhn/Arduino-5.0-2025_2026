@@ -6,6 +6,7 @@ import math
 
 # Printing debugging info
 debug_print = False
+debug_print_important = True
 
 # Showing lines and blobs in the image
 show_blob_info = False
@@ -17,8 +18,12 @@ show_line_following = True
 # Threshold which pixel brightness counts as black
 GRAYSCALE_THRESHOLD = [(0, 90)]
 
+# Threshold which RGB values are considered green (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi)
+GREEN_THRESHOLD = [(20, 70, -40, -10, 0, 35)]
+
 # Threshold how many pixels a blob must have to be relevant
 pixel_threshold = 80
+density_threshold = 0.45
 
 ## Image constants
 width, height = 160, 120
@@ -51,12 +56,13 @@ def find_avg_center(roi, blob_array):
     """
     for i, r in enumerate(roi):
         blobs = img.find_blobs(
-            [(255, 255)], roi=r, merge=True
+            [(255, 255)], roi=r, merge=True, pixels_threshold = pixel_threshold
         )
-        img.draw_rectangle(*r, color=(255,0,0))
+        if show_blob_info:
+            img.draw_rectangle(*r, color=(255,0,0))
         if blobs:
             best_blob = max(blobs, key=lambda b: b.pixels())
-            if best_blob.pixels() > pixel_threshold:
+            if best_blob.density() > density_threshold:
                 if show_blob_info:
                     img.draw_edges(best_blob.min_corners(), blob_color)
                     img.draw_cross(best_blob.cx(), best_blob.cy(), blob_color)
@@ -97,8 +103,11 @@ def calculate_line_slope(pos1, pos2) -> int | None:
 blob_array_top = [0] * len(top_roi)
 blob_array_mid = [0] * len(mid_roi)
 
-# Array
+# Array saving ...
 vertical_line_array = [0] * num_kreuzung_segments
+
+# Array saving all found green blobs
+green_blobs = []
 
 ## Drawing stuff
 blob_color = (100, 255, 100)
@@ -107,17 +116,39 @@ angled_line_color = (0, 0, 0)
 
 # Camera setup...
 sensor.reset()  # Initialize the camera sensor.
-sensor.set_pixformat(sensor.GRAYSCALE)  # use grayscale.
+sensor.set_pixformat(sensor.RGB565)  # use grayscale.
 sensor.set_framesize(sensor.QQVGA)  # use QQVGA for speed.
 sensor.skip_frames(time=2000)  # Let new settings take effect.
 sensor.set_auto_gain(False)  # must be turned off for color tracking
 sensor.set_auto_whitebal(False)  # must be turned off for color tracking
 clock = time.clock()  # Tracks FPS.
 
-counter = 1
 while True:
+    green_blobs = []
+    blob_left = False
+    blob_right = False
     clock.tick()  # Track elapsed milliseconds between snapshots().
-    img = sensor.snapshot().crop(roi=(0, 0, width, cut_height)).binary(GRAYSCALE_THRESHOLD)  # Take a picture and return the image.
+    img = sensor.snapshot().crop(roi=(0, 0, width, cut_height))
+
+    #continue
+
+    # Create green mask
+    for blob in img.find_blobs(GREEN_THRESHOLD, pixels_threshold=200, area_threshold=200):
+        #original_image.draw_edges(blob.min_corners(), blob_color)
+        #original_image.draw_cross(blob.cx(), blob.cy(), blob_color)
+        green_blobs.append(blob)
+        #original_image.draw_rectangle(*blob.rect(), color = (255,255,255), fill = True)
+        img.flood_fill(
+            blob.cx(),
+            blob.cy(),
+            seed_threshold=0.09,
+            floating_thresholds=0.5,
+            color=(255, 255, 255),
+            invert=False,
+            clear_background=False,
+        )
+
+    img.to_grayscale().binary(GRAYSCALE_THRESHOLD)
 
     if show_line_following:
         # Draw circle in the center
@@ -264,10 +295,23 @@ while True:
         if debug_print:
             print("Length of right line:", right_line_length)
 
-        if debug_print:
+        if debug_print_important:
             if left_line_length >= 2 and right_line_length >= 2:
                 # TODO something shall happen when kreuzung is detected
                 print("Kreuzung mit Linie bei", vertical_line_range)
+                for blob in green_blobs:
+                    if blob.cx() < vertical_line_pos * roi_width:
+                        blob_left = True
+                    else:
+                        blob_right = True
+                if blob_left and blob_right:
+                    print("Turn!")
+                elif blob_left:
+                    print("Left!")
+                elif blob_right:
+                    print("Right!")
+                else:
+                    print("Kein grün :(")
             else:
                 print("Keine Kreuzung gefunden.")
 
