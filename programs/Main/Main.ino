@@ -45,6 +45,15 @@
 #include "variables.h"    // all declarations and variables
 #include "Calibration.h" // calibration values for reflection sensors, color sensors and potentially compass sensor
 
+#include "Compass.h" // commands for a compass
+#include "MotorMovements.h"    //predefined motor movements
+#include "Camera.h"        
+#include "Kreuzung.h"      //command for handling crosssections
+#include "Opfer.h"              //Du Opfer
+
+#include "Distance.h"            // Abstand, noch nicht einsortiert zwischen die restlichen includes
+
+
 void setup()
 {
   delay(5000);                       // Wichtig für den Abstandssensor
@@ -71,8 +80,8 @@ void setup()
 
   // REIHENFOLGE:
   /*
-    - Abstandssensor
-    - Farbsensoren
+    - Abstandssensor (?)
+    - Kamera (?)
   */
   
   // // ABSTANDSSENSOR-INITIALISIEREN
@@ -96,279 +105,283 @@ void setup()
   // for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
   // Serial.println("Initialisierung Abstandssensor abgeschlossen");
 
-  motors.initialize();
-  // falls man global die Motor-Drehrichtung ändern möchte:
-  motors.flipLeftMotor(false); // nur notwendig, wenn man true reinschreibt
-  motors.flipRightMotor(true); // nur notwendig, wenn man true reinschreibt
+  openmv_cam_setup();
+
+  motor_setup();
 
 
   debug = LOG_REFLECTANCE;
   bigState = DRIVING;
 }
 
-#include "Compass.h" // commands for a compass
-#include "MotorMovements.h"    //predefined motor movements
-#include "Camera.h"        
-#include "Kreuzung.h"      //command for handling crosssections
-#include "Opfer.h"              //Du Opfer
-
-#include "Distance.h"            // Abstand, noch nicht einsortiert zwischen die restlichen includes
-
 void loop()
 {
-  switch (bigState) {
-    case STOP:
-      stop();
-      // check for red!!!
-      if (false /*TODO check for red*/) { 
-        digitalWrite(LEDR, HIGH);
-        // TODO implement waiting 8 seconds with Chrono or smthng
-      }
-      else {
-        delay(100);
-      
-        // Reset LEDs
-        digitalWrite(LED_BUILTIN, LOW);
-        digitalWrite(LEDR, LOW);
-        digitalWrite(LEDG, LOW);
-        digitalWrite(LEDB, LOW);
+  // TODO redesign everything for state machines
 
-        // Set distance array to invalid value
-        for (int i = 0; i < 5; i++) distance_array[i] = 65535;
-
-        // Debugging
-        switch (debug) {
-          case LOG_NOTHING:
-            break;
-
-          case LOG_DISTANCE: 
-            readDistance();
-            logDistance();
-            break;
-
-          case LOG_LINE: 
-            // TODO implement check for cam and look what line may be
-            break;
-        }
-  
-        if (!digitalRead(motorPin) /*TODO remember to check that red is true too*/) {
-          bigState = DRIVING;
-        }   
-      }
-      break;
-
-    case OPFER:
-      Serial.println("opfer");
-      digitalWrite(LEDR, LOW);
-      digitalWrite(LEDG, LOW);
-      digitalWrite(LEDB, LOW);
-      no_line_cycle_count = 0;
-      opfer();
-      bigState = DRIVING;
-
-    case DRIVING:
-      if (digitalRead(motorPin)) {
-        bigState = STOP;
-      }
-      if (no_line_cycle_count >= 35) {
-        bigState = OPFER;
-        break; // Jump prematurely out of the switch-case
-      }
-
-      // if (left_line_cycle_count > right_line_cycle_count) {
-      //   digitalWrite(LEDR, HIGH);
-      //   digitalWrite(LEDG, HIGH);
-      //   digitalWrite(LEDB, LOW);
-      // }
-      // if (right_line_cycle_count > left_line_cycle_count) {
-      //   digitalWrite(LEDR, HIGH);
-      //   digitalWrite(LEDG, LOW);
-      //   digitalWrite(LEDB, HIGH);
-      // }
-      // if (left_line_cycle_count == right_line_cycle_count) {
-      //   digitalWrite(LEDR, LOW);
-      //   digitalWrite(LEDG, LOW);
-      //   digitalWrite(LEDB, LOW);
-      // }
-
-      readDistance();
-      if (distance_val <= obstacle_threshold) {
-        abstand_umfahren(); // TODO stateify abstand
-      }
-      switch (state) {
-        case crossing:
-          if (left_line_cycle_count > right_line_cycle_count) kreuzung(-1);
-          if (right_line_cycle_count > left_line_cycle_count) kreuzung(1);
-          else kreuzung(0); // TODO stateify kreuzung
-          left_line_cycle_count = 0;
-          right_line_cycle_count = 0;
-          state = straight_driving;
-          break;
-
-        case straight_driving:
-          calculatedReflection = calculateReflection();
-
-          if (calculatedReflection != noLine) {
-            no_line_cycle_count = 0;
-            if (left_line_cycle_count >= 1) {
-              left_line_cycle_count--;
-            }
-            if (right_line_cycle_count >= 1) {
-              right_line_cycle_count--;
-            } 
-          }
-
-          if (calculatedReflection != normalLine) {
-            switch (calculatedReflection) {
-              case frontalLine:
-                state = crossing;
-                break;
-  
-              case leftLine: // TODO find out how to group cases
-                state = turn_left_to_line;
-                break;
-              case hardLeftLine:
-                state = turn_left_to_line;
-                break;
-  
-              case rightLine:
-                state = turn_right_to_line;
-                break;
-              case hardRightLine:
-                state = turn_right_to_line;
-                break;
-  
-              case sideLeftLine:
-                state = left_side;
-                break;
-              case sideRightLine:
-                state = right_side;
-                break;
-  
-              case noLine:
-                no_line_cycle_count++;
-                break;
-            }
-            break; // Exit out from straight driving early
-          } else {
-            straight(2);
-          }
-
-          break;
-        
-        case turn_left_to_line:
-          left_line_cycle_count++;
-          left_to_line(1.6);
-          break;  
-
-        case turn_right_to_line:
-          right_line_cycle_count++;
-          right_to_line(1.6);
-          break;
-
-        case left_side:
-        // PROBLEM!!!!! Seems to be that not aaaaalways side triggers at t-crossings
-          digitalWrite(LED_BUILTIN, HIGH);
-          left_line_cycle_count++;
-          straight(1.6);
-          readReflection();
-          while (reflectance_array[5] > reflectionBlackThreshold && reflectance_array[4] > reflectionBlackThreshold) {
-            readReflection();
-          }
-          delay(200);
-          left();
-
-          // Check for black on the other side
-          readReflection();
-          logReflection();
-          while (reflectance_array[0] < reflectionBlackThreshold - 200 && reflectance_array[1] < reflectionBlackThreshold - 200) /*reduce threshold by 200 because it SHOULD be more sensitive, since only white should be there*/ {
-            // Read the data
-            readReflection();
-            readColor();
-            readColor2();
-            // log stuff
-            logReflection();
-            Serial.println(String(red2) + " " + String(green2) + " " + String(blue2) + " " + String(isGreen2()));
-            // Check for green right
-            if (isGreen()) {
-              digitalWrite(LEDG, HIGH);
-              right(90, 1.8);
-              digitalWrite(LEDG, LOW);
-              break;
-            }
-            if (isGreen2()) {
-              digitalWrite(LEDB, HIGH);
-              left(90, 1.8);
-              digitalWrite(LEDB, LOW);
-              break;
-            }
-            if (digitalRead(motorPin)) {
-              bigState = STOP;
-              break;
-            }
-          }
-          Serial.println();
-
-          digitalWrite(LED_BUILTIN, LOW);
-          state = straight_driving;
-          break;
-
-        case right_side:
-          digitalWrite(LED_BUILTIN, HIGH);
-          right_line_cycle_count++;
-          straight(1.6);
-          readReflection(); // not quite straight enough
-          while (reflectance_array[0] > reflectionBlackThreshold && reflectance_array[1] > reflectionBlackThreshold) {
-            readReflection();
-          }
-          delay(200);
-          right();
-
-          // Check for black on the other side
-          readReflection();
-          logReflection();
-          while (reflectance_array[5] < reflectionBlackThreshold - 200 && reflectance_array[4] < reflectionBlackThreshold - 200) {
-            // Read the data
-            readReflection();
-            readColor();
-            readColor2();
-            // log stuff
-            logReflection();
-            Serial.println(String(red) + " " + String(green) + " " + String(blue) + " " + String(isGreen()));
-            // Check for green
-            if (isGreen()) {
-              digitalWrite(LEDG, HIGH);
-              right(90, 1.8);
-              digitalWrite(LEDG, LOW);
-              break;
-            }
-            if (isGreen2()) {
-              digitalWrite(LEDB, HIGH);
-              left(90, 1.8);
-              digitalWrite(LEDB, LOW);
-              break;
-            }
-            if (digitalRead(motorPin)) {
-              bigState = STOP;
-              break;
-            }
-          }
-          Serial.println();
-
-          digitalWrite(LED_BUILTIN, LOW);
-          state = straight_driving;
-          break;
-      }
-
-      readColor();
-      readColor2();
-      if (isRed()) {
-        stop();
-        bigState = STOP;
-      }
-
-      delay(1); // don't max out processor
-      break;
+  // Occasionally (if new data is sent) updates the receiving data
+  new_data = openMvCam.loop();
+  if (new_data) {
+    // TODO code...
+    move_as_angle(received_cam_data.angle);
+    
+    // received_cam_data.green_left
+    // received_cam_data.green_right
   }
+
+  
+  // switch (bigState) {
+  //   case STOP:
+  //     stop();
+  //     // check for red!!!
+  //     if (false /*TODO check for red*/) { 
+  //       digitalWrite(LEDR, HIGH);
+  //       // TODO implement waiting 8 seconds with Chrono or smthng
+  //     }
+  //     else {
+  //       delay(100);
+      
+  //       // Reset LEDs
+  //       digitalWrite(LED_BUILTIN, LOW);
+  //       digitalWrite(LEDR, LOW);
+  //       digitalWrite(LEDG, LOW);
+  //       digitalWrite(LEDB, LOW);
+
+  //       // Set distance array to invalid value
+  //       for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+
+  //       // Debugging
+  //       switch (debug) {
+  //         case LOG_NOTHING:
+  //           break;
+
+  //         case LOG_DISTANCE: 
+  //           readDistance();
+  //           logDistance();
+  //           break;
+
+  //         case LOG_LINE: 
+  //           // TODO implement check for cam and look what line may be
+  //           break;
+  //       }
+  
+  //       if (!digitalRead(motorPin) /*TODO remember to check that red is true too*/) {
+  //         bigState = DRIVING;
+  //       }   
+  //     }
+  //     break;
+
+  //   case OPFER:
+  //     Serial.println("opfer");
+  //     digitalWrite(LEDR, LOW);
+  //     digitalWrite(LEDG, LOW);
+  //     digitalWrite(LEDB, LOW);
+  //     no_line_cycle_count = 0;
+  //     opfer();
+  //     bigState = DRIVING;
+
+  //   case DRIVING:
+  //     if (digitalRead(motorPin)) {
+  //       bigState = STOP;
+  //     }
+  //     if (no_line_cycle_count >= 35) {
+  //       bigState = OPFER;
+  //       break; // Jump prematurely out of the switch-case
+  //     }
+
+  //     // if (left_line_cycle_count > right_line_cycle_count) {
+  //     //   digitalWrite(LEDR, HIGH);
+  //     //   digitalWrite(LEDG, HIGH);
+  //     //   digitalWrite(LEDB, LOW);
+  //     // }
+  //     // if (right_line_cycle_count > left_line_cycle_count) {
+  //     //   digitalWrite(LEDR, HIGH);
+  //     //   digitalWrite(LEDG, LOW);
+  //     //   digitalWrite(LEDB, HIGH);
+  //     // }
+  //     // if (left_line_cycle_count == right_line_cycle_count) {
+  //     //   digitalWrite(LEDR, LOW);
+  //     //   digitalWrite(LEDG, LOW);
+  //     //   digitalWrite(LEDB, LOW);
+  //     // }
+
+  //     readDistance();
+  //     if (distance_val <= obstacle_threshold) {
+  //       abstand_umfahren(); // TODO stateify abstand
+  //     }
+  //     switch (state) {
+  //       case crossing:
+  //         if (left_line_cycle_count > right_line_cycle_count) kreuzung(-1);
+  //         if (right_line_cycle_count > left_line_cycle_count) kreuzung(1);
+  //         else kreuzung(0); // TODO stateify kreuzung
+  //         left_line_cycle_count = 0;
+  //         right_line_cycle_count = 0;
+  //         state = straight_driving;
+  //         break;
+
+  //       case straight_driving:
+  //         calculatedReflection = calculateReflection();
+
+  //         if (calculatedReflection != noLine) {
+  //           no_line_cycle_count = 0;
+  //           if (left_line_cycle_count >= 1) {
+  //             left_line_cycle_count--;
+  //           }
+  //           if (right_line_cycle_count >= 1) {
+  //             right_line_cycle_count--;
+  //           } 
+  //         }
+
+  //         if (calculatedReflection != normalLine) {
+  //           switch (calculatedReflection) {
+  //             case frontalLine:
+  //               state = crossing;
+  //               break;
+  
+  //             case leftLine: // TODO find out how to group cases
+  //               state = turn_left_to_line;
+  //               break;
+  //             case hardLeftLine:
+  //               state = turn_left_to_line;
+  //               break;
+  
+  //             case rightLine:
+  //               state = turn_right_to_line;
+  //               break;
+  //             case hardRightLine:
+  //               state = turn_right_to_line;
+  //               break;
+  
+  //             case sideLeftLine:
+  //               state = left_side;
+  //               break;
+  //             case sideRightLine:
+  //               state = right_side;
+  //               break;
+  
+  //             case noLine:
+  //               no_line_cycle_count++;
+  //               break;
+  //           }
+  //           break; // Exit out from straight driving early
+  //         } else {
+  //           straight(2);
+  //         }
+
+  //         break;
+        
+  //       case turn_left_to_line:
+  //         left_line_cycle_count++;
+  //         left_to_line(1.6);
+  //         break;  
+
+  //       case turn_right_to_line:
+  //         right_line_cycle_count++;
+  //         right_to_line(1.6);
+  //         break;
+
+  //       case left_side:
+  //       // PROBLEM!!!!! Seems to be that not aaaaalways side triggers at t-crossings
+  //         digitalWrite(LED_BUILTIN, HIGH);
+  //         left_line_cycle_count++;
+  //         straight(1.6);
+  //         readReflection();
+  //         while (reflectance_array[5] > reflectionBlackThreshold && reflectance_array[4] > reflectionBlackThreshold) {
+  //           readReflection();
+  //         }
+  //         delay(200);
+  //         left();
+
+  //         // Check for black on the other side
+  //         readReflection();
+  //         logReflection();
+  //         while (reflectance_array[0] < reflectionBlackThreshold - 200 && reflectance_array[1] < reflectionBlackThreshold - 200) /*reduce threshold by 200 because it SHOULD be more sensitive, since only white should be there*/ {
+  //           // Read the data
+  //           readReflection();
+  //           readColor();
+  //           readColor2();
+  //           // log stuff
+  //           logReflection();
+  //           Serial.println(String(red2) + " " + String(green2) + " " + String(blue2) + " " + String(isGreen2()));
+  //           // Check for green right
+  //           if (isGreen()) {
+  //             digitalWrite(LEDG, HIGH);
+  //             right(90, 1.8);
+  //             digitalWrite(LEDG, LOW);
+  //             break;
+  //           }
+  //           if (isGreen2()) {
+  //             digitalWrite(LEDB, HIGH);
+  //             left(90, 1.8);
+  //             digitalWrite(LEDB, LOW);
+  //             break;
+  //           }
+  //           if (digitalRead(motorPin)) {
+  //             bigState = STOP;
+  //             break;
+  //           }
+  //         }
+  //         Serial.println();
+
+  //         digitalWrite(LED_BUILTIN, LOW);
+  //         state = straight_driving;
+  //         break;
+
+  //       case right_side:
+  //         digitalWrite(LED_BUILTIN, HIGH);
+  //         right_line_cycle_count++;
+  //         straight(1.6);
+  //         readReflection(); // not quite straight enough
+  //         while (reflectance_array[0] > reflectionBlackThreshold && reflectance_array[1] > reflectionBlackThreshold) {
+  //           readReflection();
+  //         }
+  //         delay(200);
+  //         right();
+
+  //         // Check for black on the other side
+  //         readReflection();
+  //         logReflection();
+  //         while (reflectance_array[5] < reflectionBlackThreshold - 200 && reflectance_array[4] < reflectionBlackThreshold - 200) {
+  //           // Read the data
+  //           readReflection();
+  //           readColor();
+  //           readColor2();
+  //           // log stuff
+  //           logReflection();
+  //           Serial.println(String(red) + " " + String(green) + " " + String(blue) + " " + String(isGreen()));
+  //           // Check for green
+  //           if (isGreen()) {
+  //             digitalWrite(LEDG, HIGH);
+  //             right(90, 1.8);
+  //             digitalWrite(LEDG, LOW);
+  //             break;
+  //           }
+  //           if (isGreen2()) {
+  //             digitalWrite(LEDB, HIGH);
+  //             left(90, 1.8);
+  //             digitalWrite(LEDB, LOW);
+  //             break;
+  //           }
+  //           if (digitalRead(motorPin)) {
+  //             bigState = STOP;
+  //             break;
+  //           }
+  //         }
+  //         Serial.println();
+
+  //         digitalWrite(LED_BUILTIN, LOW);
+  //         state = straight_driving;
+  //         break;
+  //     }
+
+  //     readColor();
+  //     readColor2();
+  //     if (isRed()) {
+  //       stop();
+  //       bigState = STOP;
+  //     }
+
+  //     delay(1); // don't max out processor
+  //     break;
+  // }
 }
 //gyatt

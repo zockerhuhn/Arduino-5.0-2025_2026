@@ -206,9 +206,11 @@ while True:
 
         if debug_print:
             print("Calculating angle of line...")
+        # TODO the line slope is not too accurate because of the ROIfication of the image.
+        # Try to fix this pls
         line_angle_rad = calculate_line_slope(mid_center_pos, top_center_pos)
 
-        if debug_print:
+        if debug_print_important:
             if line_angle_rad != None:
                 print("Angle:", math.degrees(line_angle_rad))
             else:
@@ -298,7 +300,7 @@ while True:
         if debug_print_important:
             if left_line_length >= 2 and right_line_length >= 2:
                 # TODO something shall happen when kreuzung is detected
-                print("Kreuzung mit Linie bei", vertical_line_range)
+                #print("Kreuzung mit Linie bei", vertical_line_range)
                 for blob in green_blobs:
                     if blob.cx() < vertical_line_pos * roi_width:
                         blob_left = True
@@ -314,6 +316,11 @@ while True:
                     print("Kein grün :(")
             else:
                 print("Keine Kreuzung gefunden.")
+
+    # Communicating with robot
+
+    # Send the angle
+
 
     if debug_print:
         print("FPS:", clock.fps())  # Note: Your OpenMV Cam runs about half as fast while

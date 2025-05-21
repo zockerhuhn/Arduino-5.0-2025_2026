@@ -5,3 +5,4 @@
 #include <RescueBoardMotors.h>
 #include <WiFiNINA.h>
 #include <VL53L0X.h>
+#include <openmvrpc.h>

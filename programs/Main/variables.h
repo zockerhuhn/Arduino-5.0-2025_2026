@@ -1,5 +1,21 @@
 // CAMERA
 
+// Messages between OpenMV Cam and Arduino are limited to 256 bytes
+openmv::rpc_scratch_buffer<256> scratch_buffer;
+// Register a maximum of 8 commands
+openmv::rpc_callback_buffer<8> callback_buffer;
+
+openmv::rpc_hardware_serial1_uart_slave openMvCam(115200);
+
+// Flag tracking if data from the camera is received this loop
+bool new_data = false;
+
+// Data received from OpenMV Cam
+struct {
+    uint16_t angle = 0;
+    uint16_t green_left = 0; // TODO change to bool but I'm afraid of modifying the comms code
+    uint16_t green_right = 0;
+} received_cam_data;
 
 // Lines
 enum Lines {
@@ -42,7 +58,7 @@ int opfer_wall_threshold = 100;
 uint16_t direction;
 uint16_t current_direction;
 
-// State machine
+// OBSOLETE STATE MACHINE
 enum BigState {
   OPFER,
   DRIVING,
