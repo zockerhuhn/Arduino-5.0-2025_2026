@@ -1,6 +1,26 @@
 import sensor
 import time
 import math
+import rpc
+import struct
+
+## Arduino-Camera-Communication
+interface = rpc.rpc_uart_master(baudrate=115200)
+
+# Flag controlling if data will be transferred
+send_data = False
+
+def send_to_arduino(angle, green_left, green_right):
+    vals_to_send = (angle, green_left, green_right)
+    # Send the data to the arduino
+    # Angle is saved as an integer dezidegree(?),
+    # which means we have a precision of 1/10 for an angle in degrees
+    result = interface.call("sent", struct.pack("<HHH", *vals_to_send))
+    # Check if the arduino answers something valid
+    if result is not None and len(result):
+        return True
+    print("Response invalid!", result)
+    return False
 
 ## Debugging flags
 
@@ -299,8 +319,7 @@ while True:
 
         if debug_print_important:
             if left_line_length >= 2 and right_line_length >= 2:
-                # TODO something shall happen when kreuzung is detected
-                #print("Kreuzung mit Linie bei", vertical_line_range)
+                # Kreuzung detected
                 for blob in green_blobs:
                     if blob.cx() < vertical_line_pos * roi_width:
                         blob_left = True
@@ -319,8 +338,16 @@ while True:
 
     # Communicating with robot
 
-    # Send the angle
-
+    if send_data:
+        # For now, only talk if there are actual infos
+        if weight_sum_top and weight_sum_mid:
+            # Send the angle and information about the left and right green spots
+            # Remember that the green spots will only get checked if a kreuzung is present!
+            angle = int(math.degrees(line_angle_rad) * 10)
+            send_to_arduino(angle, blob_left, blob_right)
+        else:
+            # Angle is "invalid" as 60000
+            send_to_arduino(60000, blob_left, blob_right)
 
     if debug_print:
         print("FPS:", clock.fps())  # Note: Your OpenMV Cam runs about half as fast while
