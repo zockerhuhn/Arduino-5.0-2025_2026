@@ -105,10 +105,9 @@ void setup()
   // for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
   // Serial.println("Initialisierung Abstandssensor abgeschlossen");
 
-  openmv_cam_setup();
+  // openmv_cam_setup();
 
-  motor_setup();
-
+  // motor_setup();
 
   debug = LOG_REFLECTANCE;
   bigState = DRIVING;
@@ -121,11 +120,15 @@ void loop()
   // Occasionally (if new data is sent) updates the receiving data
   new_data = openMvCam.loop();
   if (new_data) {
+    Serial.print("angle: " + String(received_cam_data.angle) + ", green left: " + String(received_cam_data.green_left) + ", green right: " + String(received_cam_data.green_right) + "\n");
     // TODO code...
-    move_as_angle(received_cam_data.angle);
+    // move_as_angle(received_cam_data.angle);
     
     // received_cam_data.green_left
     // received_cam_data.green_right
+  } 
+  else {
+    Serial.println("No new data");
   }
 
   

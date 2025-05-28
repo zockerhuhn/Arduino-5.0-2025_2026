@@ -145,8 +145,8 @@ clock = time.clock()  # Tracks FPS.
 
 while True:
     green_blobs = []
-    blob_left = False
-    blob_right = False
+    blob_left = 0
+    blob_right = 0
     clock.tick()  # Track elapsed milliseconds between snapshots().
     img = sensor.snapshot().crop(roi=(0, 0, width, cut_height))
 
@@ -321,10 +321,11 @@ while True:
             if left_line_length >= 2 and right_line_length >= 2:
                 # Kreuzung detected
                 for blob in green_blobs:
+                # TODO ensure blobs are followed by black!!!
                     if blob.cx() < vertical_line_pos * roi_width:
-                        blob_left = True
+                        blob_left = 1
                     else:
-                        blob_right = True
+                        blob_right = 1
                 if blob_left and blob_right:
                     print("Turn!")
                 elif blob_left:
