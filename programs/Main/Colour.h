@@ -21,41 +21,19 @@ void readColor2() { //liest Farbsensor 2 aus und printed Ergebnis
 }
 
 bool isGreen() { // nimmt letzten ausgelesen Wert von Farbsensor 1 und return ob grün erkannt wurde als bool 
-  if ((green-blueGreenThreshold) >= blue && (green-redGreenThreshold) >= red && brightness <= colorBrightMaxThreshold && brightness >= colorBrightMinThreshold)
-  {
-    return true;
-  }
-  else
-  {
-    //Serial.println("right:" + String(green) + " " + String(blue) + " " + String(red) + " " + String((green-blueGreenThreshold) >= blue) + " " + String((green-redGreenThreshold) >= red) + " " + String(brightness <= colorBrightMaxThreshold)  + " " + String(brightness >= colorBrightMinThreshold));
-    return false;
-  }
+  return ((green-blueGreenThreshold) >= blue && (green-redGreenThreshold) >= red && brightness <= colorBrightMaxThreshold && brightness >= colorBrightMinThreshold);
 }
 
 bool isGreen2() { // nimmt letzten ausgelesen Wert von Farbsensor 2 und returnt ob grün erkannt wurde als bool
-  if ((green2-blueGreenThreshold2) >= blue2 && (green2-redGreenThreshold2) >= red2 && brightness2 <= colorBrightMaxThreshold && brightness2 >= colorBrightMinThreshold)
-  {
-    return true;
-  }
-  else
-  {
-    //Serial.println("left:" + String(green2) + " " + String(blue2) + " " + String(red2) + " " + String((green2-blueGreenThreshold) >= blue2) + " " + String((green2-redGreenThreshold) >= red2) + " " + String(brightness2 <= colorBrightMaxThreshold) + " " + String(brightness2 >= colorBrightMinThreshold));
-    return false;
-  }
+  return ((green2-blueGreenThreshold2) >= blue2 && (green2-redGreenThreshold2) >= red2 && brightness2 <= colorBrightMaxThreshold && brightness2 >= colorBrightMinThreshold);
 }
 
 bool isRed() {
-  if ((1.3 * (blue + green) <= red + 300) || (1.3 * (old_colour[2] + old_colour[1]) <= old_colour[0] + 300)) {
-    return true;
-  }
-  return false;
+  return ((1.3 * (blue + green) <= red + 300) || (1.3 * (old_colour[2] + old_colour[1]) <= old_colour[0] + 300));
 }
 
 bool isRed2() {
-  if ((1.3 * (blue2 + green2) <= red2 + 300) || (1.3 * (old_colour2[2] + old_colour2[1]) <= old_colour2[0] + 300)) {
-    return true;
-  }
-  return false;
+  return ((1.3 * (blue2 + green2) <= red2 + 300) || (1.3 * (old_colour2[2] + old_colour2[1]) <= old_colour2[0] + 300));
 }
 
 void redHandling() {
@@ -67,7 +45,7 @@ void redHandling() {
     digitalWrite(LEDR, HIGH);
     
     // Serial.println("red"); 
-    // Serial.println("red vals: " + String(red) + " " + String(green) + " " + String(blue) + " " + String(brightness) + "\t " + String(red2) + " " + String(green2) + " " + String(blue2) + " " + String(brightness2));
+
     delay(8000); // More than 5 seconds
 
     if (digitalRead(motorPin)) {

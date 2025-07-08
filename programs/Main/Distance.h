@@ -24,18 +24,19 @@ void moveArrBack(int *array, int size) {
 }
 
 int readRawDistance() {
-  if (!tofSensor.timeoutOccurred()) {
-    distance_val = tofSensor.readRangeContinuousMillimeters();
-  }
-  // logDistance();
-  // statt 65535 kann es auch passieren, dass sich der Wert einfach nicht mehr ändert
-  if (distance_val != 65535) {
-    return distance_val;
-  }
-  // Fehler:
-  distance_val = LOST_CONNECTION;
-  Serial.println("ToF Verdrahtung prüfen! Roboter aus- und einschalten! " + String(tofSensor.readRangeContinuousMillimeters()));
-  return distance_val;
+  // if (!tofSensor.timeoutOccurred()) {
+  //   distance_val = tofSensor.readRangeContinuousMillimeters();
+  // }
+  // // logDistance();
+  // // statt 65535 kann es auch passieren, dass sich der Wert einfach nicht mehr ändert
+  // if (distance_val != 65535) {
+  //   return distance_val;
+  // }
+  // // Fehler:
+  // distance_val = LOST_CONNECTION;
+  // Serial.println("ToF Verdrahtung prüfen! Roboter aus- und einschalten! " + String(tofSensor.readRangeContinuousMillimeters()));
+  // return distance_val;
+  return 500;
 }
 
 int readDistance(int num_average = 5) {

@@ -13,7 +13,7 @@ void logReflection() { // print reflection sensor values
 void readReflection() { //read reflectionsensor
   reflectanceSensor.read(reflectance_array);
 }
- 
+
 
 String calculateReflection() { //read reflection and return processed result 
   readReflection();

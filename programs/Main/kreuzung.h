@@ -1,6 +1,6 @@
 #pragma once
 
-void kreuzung(int sides /*- 1 is left, 0 is none, 1 is right*/) {
+void kreuzung(int side /*- 1 is left, 0 is none, 1 is right*/) {
   if (!(digitalRead(motorPin))) {
     // drive forward slowly, check for greens
     digitalWrite(LED_BUILTIN, HIGH); // Activate Lamp to see when a Kreuzung is detected
@@ -79,18 +79,18 @@ void kreuzung(int sides /*- 1 is left, 0 is none, 1 is right*/) {
       // Robot should be about above the geometric centre
       right(90, 1.8);
       straight(1.8); // then go straight a bit to avoid seeing a crossing again
-      delay(200);     
+      delay(500);     
     }
     else if (green_occurences2 >= 2) {
       Serial.print("left\t");
 
       left(90, 1.8);
       straight(1.8);
-      delay(200);
+      delay(500);
     }
     else { // Did not find any green
       if (calculateReflection() == "noLine") {
-        if (sides == -1 || sides == 0) {
+        if (side == -1 || side == 0) {
           // finding line
           readDirection();
           int initialDirection = direction;
@@ -124,7 +124,7 @@ void kreuzung(int sides /*- 1 is left, 0 is none, 1 is right*/) {
             }
           }
         }
-        else if (sides == 1) {
+        else if (side == 1) {
           // finding line
           readDirection();
           int initialDirection = direction;

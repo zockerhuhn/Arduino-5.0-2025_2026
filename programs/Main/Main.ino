@@ -71,29 +71,29 @@ void setup()
 
   // REIHENFOLGE:
   /*
-   - Abstandssensor
-   - Farbsensoren
+    - Abstandssensor
+    - Farbsensoren
   */
   
-  // ABSTANDSSENSOR-INITIALISIEREN
-  Serial.println("Initialisierung des 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
-  tofSensor.setBus(&Wire);
-  tofSensor.setAddress(NEW_TOF_ADDRESS);
-  if (!tofSensor.init()) {
-      delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
-      Serial.println("ToF Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
-      while (1);
-  }
-  // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
-  tofSensor.setTimeout(500);
-  // Reichweiter vergrößern (macht den Sensor ungenauer)
-  tofSensor.setSignalRateLimit(0.1);
-  tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
-  tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
-  // lasse Sensor die ganze Zeit an
-  tofSensor.startContinuous();
-  // Initialise the default values for the "window", should be in variables but won't work there
-  for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
+  // // ABSTANDSSENSOR-INITIALISIEREN
+  // Serial.println("Initialisierung des 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
+  // tofSensor.setBus(&Wire);
+  // tofSensor.setAddress(NEW_TOF_ADDRESS);
+  // if (!tofSensor.init()) {
+  //     delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
+  //     Serial.println("ToF Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
+  //     while (1);
+  // }
+  // // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
+  // tofSensor.setTimeout(500);
+  // // Reichweiter vergrößern (macht den Sensor ungenauer)
+  // tofSensor.setSignalRateLimit(0.1);
+  // tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
+  // tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
+  // // lasse Sensor die ganze Zeit an
+  // tofSensor.startContinuous();
+  // // Initialise the default values for the "window", should be in variables but won't work there
+  // for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
   Serial.println("Initialisierung Abstandssensor abgeschlossen");
 
 
@@ -129,7 +129,6 @@ void setup()
   motors.flipLeftMotor(false); // nur notwendig, wenn man true reinschreibt
   motors.flipRightMotor(true); // nur notwendig, wenn man true reinschreibt
 
-
   debug = LOG_NOTHING;
 }
 
@@ -138,13 +137,12 @@ void setup()
 #include "MotorMovements.h"    //predefined motor movements
 #include "Colour.h"        //commands for reading and processing colorsensors
 #include "Kreuzung.h"      //command for handling crosssections
+#include "Distance.h"            // Abstand
 #include "Opfer.h"              //Du Opfer
-
-#include "Distance.h"            // Abstand, noch nicht einsortiert zwischen die restlichen includes
 
 void loop()
 {
-  if (no_line_cycle_count >= 0)
+  if (no_line_cycle_count >= 35)
   {
     Serial.println("opfer");
     opfer();
@@ -204,8 +202,8 @@ void loop()
       redGreenThreshold = average_g - average_r - 200;
       redGreenThreshold2 = average_g2 - average_r2 - 200;
 
-      colorBrightMaxThreshold = max(brightness, brightness2) + 1500;
-      colorBrightMinThreshold = min(brightness, brightness2) - 300;
+      colorBrightMaxThreshold = max(average_c, average_c2) + 1500;
+      colorBrightMinThreshold = min(average_c, average_c2) - 300;
 
       // 738 886 767 2399
 
@@ -225,7 +223,7 @@ void loop()
     }
   }
 
-   if (digitalRead(motorPin)) {
+  if (digitalRead(motorPin)) {
     delay(100);
     
     // Reset LEDs
