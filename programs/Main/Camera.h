@@ -5,7 +5,7 @@ void update_cam_data(void* in_data, size_t in_data_len) {
         // Data is complete
         // Copying in_data buffer into receiving data structure
         Serial.println("Writing received data to buffer");
-        memcpy(&received_cam_data, in_data, sizeof(received_cam_data));
+        memcpy(&received_cam_angle, in_data, sizeof(received_cam_angle));
         
     }
     else {

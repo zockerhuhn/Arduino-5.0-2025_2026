@@ -14,7 +14,7 @@ def send_to_arduino(*vals_to_send):
     # Send the data to the arduino
     # Angle is saved as an integer dezidegree(?),
     # which means we have a precision of 1/10 for an angle in degrees
-    result = interface.call("sent", struct.pack("<HHHH", *vals_to_send))
+    result = interface.call("sent", struct.pack("<H", *vals_to_send))
     # Check if the arduino answers something valid
     if result is not None and len(result):
         return True
@@ -116,6 +116,20 @@ def calculate_line_slope(pos1, pos2) -> int | None:
     line_mag = math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)
     if line_mag > 0:
         return -math.asin((pos1[0] - pos2[0]) / line_mag)
+    return None
+
+def calculate_modified_line_slope(pos1, pos2) -> int | None:
+    """
+    Calculates the slope of the line connecting the average of the given positions with
+    the "starting position" of the robot.
+    """
+    avg_pos = []
+    avg_pos.append((pos1[0] + pos2[0]) / 2)
+    avg_pos.append((pos1[1] + pos2[1]) / 2)
+
+    line_mag = math.sqrt((avg_pos[0] - 80)**2 + (avg_pos[1] - 80)**2)
+    if line_mag > 0:
+        return -math.asin((avg_pos[0] - 80) / line_mag)
     return None
 
 # Array that saves the blobs that are found in the specified roi
@@ -221,13 +235,15 @@ while True:
     # Combining knowledge
     if weight_sum_top and weight_sum_mid:
         if show_line_following:
-            img.draw_line(*mid_center_pos, *top_center_pos, color=angled_line_color, thickness=2)
+            x_pos = int((top_center_pos[0] + mid_center_pos[0])/2)
+            y_pos = int((top_center_pos[1] + mid_center_pos[1])/2)
+            img.draw_line(x_pos, y_pos, 80, 80, color=angled_line_color, thickness=2)
 
         if debug_print:
             print("Calculating angle of line...")
         # TODO the line slope is not too accurate because of the ROIfication of the image.
         # Try to fix this pls
-        line_angle_rad = calculate_line_slope(mid_center_pos, top_center_pos)
+        line_angle_rad = calculate_modified_line_slope(mid_center_pos, top_center_pos)
 
         if debug_print_important:
             if line_angle_rad != None:
@@ -344,10 +360,20 @@ while True:
             # Send the angle and information about the left and right green spots
             # Remember that the green spots will only get checked if a kreuzung is present!
             angle = int(math.degrees(line_angle_rad) * 10)
-            send_to_arduino(angle, blob_left, blob_right, vertical_line_pos - 4)
+
+            # angle variable ranges from -900 to 900 (tho never actually the edges bc of how we calculate angles),
+            # so any other values are invalid
+            # We'll "reserve" some of these values to use for the kreuzung turns
+            if (blob_left and blob_right):
+                angle = 1800
+            if blob_left:
+                angle = 900
+            if blob_right:
+                angle = -900
+            send_to_arduino(angle)
         else:
-            # Angle is "invalid" as 60000
-            send_to_arduino(60000, blob_left, blob_right, vertical_line_pos - 4)
+            # Angle is considered "invalid" at 360° = 3600
+            send_to_arduino(3600)
 
     if debug_print:
         print("FPS:", clock.fps())  # Note: Your OpenMV Cam runs about half as fast while

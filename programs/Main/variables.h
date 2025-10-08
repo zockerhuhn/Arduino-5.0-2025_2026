@@ -11,12 +11,7 @@ openmv::rpc_hardware_serial1_uart_slave openMvCam(115200);
 bool new_data = false;
 
 // Data received from OpenMV Cam
-struct {
-    uint16_t angle = 0;
-    uint16_t green_left = 0; // TODO change to bool but I'm afraid of modifying the comms code
-    uint16_t green_right = 0;
-    uint16_t x_error = 0; // how far the line (seems to be) / is distant from the center, where -4 is very left and 4 is very right
-} received_cam_data;
+uint16_t received_cam_angle;
 
 // Lines
 enum Lines {

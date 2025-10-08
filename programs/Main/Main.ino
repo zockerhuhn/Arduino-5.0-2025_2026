@@ -120,12 +120,10 @@ void loop()
   // Occasionally (if new data is sent) updates the receiving data
   new_data = openMvCam.loop();
   if (new_data) {
-    Serial.print("angle: " + String(received_cam_data.angle) + ", green left: " + String(received_cam_data.green_left) + ", green right: " + String(received_cam_data.green_right) + "\n");
+    Serial.print("angle: " + String(received_cam_angle) + "\n");
     // TODO code...
-    // move_as_angle(received_cam_data.angle);
-    
-    // received_cam_data.green_left
-    // received_cam_data.green_right
+    // move_as_angle(received_cam_angle);
+
   } 
   else {
     Serial.println("No new data");
