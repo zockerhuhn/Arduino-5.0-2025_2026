@@ -20,3 +20,7 @@ void openmv_cam_setup() {
     openMvCam.begin();
     Serial.println("Set up OpenMV Cam.");
 }
+
+bool isRed() {
+    return cam_data.red;
+}

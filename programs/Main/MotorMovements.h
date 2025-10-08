@@ -193,95 +193,95 @@ void right_to_line(float speed = 1, int turnBy = 70) {
 }
 
 void abstand_umfahren() {
-  // digitalWrite(LED_BUILTIN, HIGH);
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  //   }
+  digitalWrite(LED_BUILTIN, HIGH);
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+    }
 
-  // straight(-1);
-  // while (distance_val < 90) {
-  //   readDistance();
-  //   delay(10);
-  // }
-  // stop();
+  straight(-1);
+  while (distance_val < 90) {
+    readDistance();
+    delay(10);
+  }
+  stop();
 
 
-  // right();
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // delay(2000);
+  right();
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  delay(2000);
 
-  // straight();
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // delay(4000);
+  straight();
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  delay(4000);
   
 
-  // left();
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // delay(2000);
+  left();
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  delay(2000);
 
-  // straight();
+  straight();
 
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // delay(6500);
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  delay(6500);
   
 
-  // left();
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // delay(2000);
+  left();
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  delay(2000);
 
-  // straight();
+  straight();
 
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
 
-  // delay(1200);
-  // while ((calculatedReflection = calculateReflection()) == noLine) {
-  //   if (digitalRead(motorPin)) {
-  //     stop();
-  //     bigState = STOP;
-  //     return;
-  //   }
-  // }
+  delay(1200);
+  while ((calculatedReflection = calculateReflection()) == noLine) {
+    if (digitalRead(motorPin)) {
+      stop();
+      bigState = STOP;
+      return;
+    }
+  }
 
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // delay(1500);
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  delay(1500);
 
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // right_to_line(180);
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  right_to_line(180);
 
-  // for (int i = 0; i < 5; i++) distance_array[i] = 65535;
-  // digitalWrite(LED_BUILTIN, LOW);
+  for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+  digitalWrite(LED_BUILTIN, LOW);
 }

@@ -9,6 +9,7 @@ openmv::rpc_hardware_serial1_uart_slave openMvCam(115200);
 
 // Flag tracking if data from the camera is received this loop
 bool new_data = false;
+int cycles_since_data = 0;
 
 // Data received from OpenMV Cam
 uint16_t received_cam_angle;
@@ -57,6 +58,7 @@ uint16_t current_direction;
 // OBSOLETE STATE MACHINE
 enum BigState {
   OPFER,
+  ABSTAND,
   DRIVING,
   STOP,
 };
@@ -65,8 +67,8 @@ BigState bigState;
 enum State {
   straight_driving,
   crossing,
-  turn_left_to_line,
-  turn_right_to_line,
+  strive_left,
+  strive_right,
   turn_left_90,
   turn_right_90,
 };
@@ -75,15 +77,10 @@ State state = straight_driving;
 // Debug modes:
 enum DebugMode {
   LOG_NOTHING,
-  LOG_DISTANCE,
   LOG_COLOUR,
-  LOG_REFLECTANCE,
   LOG_LINE,
 };
 enum DebugMode debug = LOG_NOTHING;
 
 // Opferlogic
 int no_line_cycle_count = 0;
-int left_line_cycle_count = 0;
-int right_line_cycle_count = 0;
-int kreuzung_cooldown  = 0;

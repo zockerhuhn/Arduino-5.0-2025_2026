@@ -160,10 +160,14 @@ while True:
     green_blobs = []
     blob_left = 0
     blob_right = 0
+    red_line_detected = False
     clock.tick()  # Track elapsed milliseconds between snapshots().
     img = sensor.snapshot().crop(roi=(0, 0, width, cut_height))
 
     #continue
+
+    # TODO check for red
+    
 
     # Create green mask
     for blob in img.find_blobs(GREEN_THRESHOLD, pixels_threshold=200, area_threshold=200):

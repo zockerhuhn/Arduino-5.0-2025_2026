@@ -84,32 +84,32 @@ void setup()
     - Kamera (?)
   */
   
-  // // ABSTANDSSENSOR-INITIALISIEREN
-  // Serial.println("Initialisierung des 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
-  // tofSensor.setBus(&Wire);
-  // tofSensor.setAddress(NEW_TOF_ADDRESS);
-  // if (!tofSensor.init()) {
-  //     delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
-  //     Serial.println("ToF Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
-  //     while (1);
-  // }
-  // // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
-  // tofSensor.setTimeout(500);
-  // // Reichweiter vergrößern (macht den Sensor ungenauer)
-  // tofSensor.setSignalRateLimit(0.1);
-  // tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
-  // tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
-  // // lasse Sensor die ganze Zeit an
-  // tofSensor.startContinuous();
-  // // Initialise the default values for the "window", should be in variables but won't work there
-  // for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
-  // Serial.println("Initialisierung Abstandssensor abgeschlossen");
+  // ABSTANDSSENSOR-INITIALISIEREN
+  Serial.println("Initialisierung des 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
+  tofSensor.setBus(&Wire);
+  tofSensor.setAddress(NEW_TOF_ADDRESS);
+  if (!tofSensor.init()) {
+      delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
+      Serial.println("ToF Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
+      while (1);
+  }
+  // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
+  tofSensor.setTimeout(500);
+  // Reichweiter vergrößern (macht den Sensor ungenauer)
+  tofSensor.setSignalRateLimit(0.1);
+  tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
+  tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
+  // lasse Sensor die ganze Zeit an
+  tofSensor.startContinuous();
+  // Initialise the default values for the "window", should be in variables but won't work there
+  for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
+  Serial.println("Initialisierung Abstandssensor abgeschlossen");
 
-  // openmv_cam_setup();
+  openmv_cam_setup();
 
-  // motor_setup();
+  motor_setup();
 
-  debug = LOG_REFLECTANCE;
+  debug = LOG_NOTHING;
   bigState = DRIVING;
 }
 
@@ -119,7 +119,9 @@ void loop()
 
   // Occasionally (if new data is sent) updates the receiving data
   new_data = openMvCam.loop();
+
   if (new_data) {
+    cycles_since_data = 0;
     Serial.print("angle: " + String(received_cam_angle) + "\n");
     // TODO code...
     // move_as_angle(received_cam_angle);
@@ -127,88 +129,104 @@ void loop()
   } 
   else {
     Serial.println("No new data");
+    cycles_since_data++;
+    if (cycles_since_data > 35 /*TODO adjust value*/) {
+      Serial.println("Connection lost?");
+    }
   }
 
-  
-  // switch (bigState) {
-  //   case STOP:
-  //     stop();
-  //     // check for red!!!
-  //     if (false /*TODO check for red*/) { 
-  //       digitalWrite(LEDR, HIGH);
-  //       // TODO implement waiting 8 seconds with Chrono or smthng
-  //     }
-  //     else {
-  //       delay(100);
+  switch (bigState) {
+    case STOP:
+      stop();
+      // check for red!!!
+      if (false /*TODO check for red*/) { 
+        digitalWrite(LEDR, HIGH);
+        // TODO implement waiting 8 seconds with Chrono or smthng
+      }
+      else {
+        delay(100);
       
-  //       // Reset LEDs
-  //       digitalWrite(LED_BUILTIN, LOW);
-  //       digitalWrite(LEDR, LOW);
-  //       digitalWrite(LEDG, LOW);
-  //       digitalWrite(LEDB, LOW);
+        // Reset LEDs
+        digitalWrite(LED_BUILTIN, LOW);
+        digitalWrite(LEDR, LOW);
+        digitalWrite(LEDG, LOW);
+        digitalWrite(LEDB, LOW);
 
-  //       // Set distance array to invalid value
-  //       for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+        // Set distance array to invalid value
+        for (int i = 0; i < 5; i++) distance_array[i] = 65535;
 
-  //       // Debugging
-  //       switch (debug) {
-  //         case LOG_NOTHING:
-  //           break;
+        // Debugging
+        switch (debug) {
+          case LOG_NOTHING:
+            break;
 
-  //         case LOG_DISTANCE: 
-  //           readDistance();
-  //           logDistance();
-  //           break;
+          case LOG_LINE: 
+            // TODO implement check for cam and look what line may be
+            Serial.println("Angle:", cam_data.angle);
+            break;
 
-  //         case LOG_LINE: 
-  //           // TODO implement check for cam and look what line may be
-  //           break;
-  //       }
+          case LOG_COLOUR:
+            // Serial.println(cam_data.green_left * "Green left" + " " + cam_data.green_right * "Green right")
+            if (cam_data.green_left && cam_data.green_right) Serial.println("green green");
+            else if (cam_data.green_left) Serial.println("green -----");
+            else if (cam_data.green_right) Serial.println("----- green");
+            else Serial.println("----- -----");
+            break;
+        }
   
-  //       if (!digitalRead(motorPin) /*TODO remember to check that red is true too*/) {
-  //         bigState = DRIVING;
-  //       }   
-  //     }
-  //     break;
+        if (!digitalRead(motorPin) && true/*TODO remember to check that no red is seen*/) {
+          bigState = DRIVING;
+        }   
+      }
+      break;
 
-  //   case OPFER:
-  //     Serial.println("opfer");
-  //     digitalWrite(LEDR, LOW);
-  //     digitalWrite(LEDG, LOW);
-  //     digitalWrite(LEDB, LOW);
-  //     no_line_cycle_count = 0;
-  //     opfer();
-  //     bigState = DRIVING;
+    case OPFER:
+      Serial.println("opfer");
+      digitalWrite(LEDR, LOW);
+      digitalWrite(LEDG, LOW);
+      digitalWrite(LEDB, LOW);
+      no_line_cycle_count = 0;
+      opfer();
+      bigState = DRIVING;
+      break;
+    
+    case ABSTAND:
+      // TODO check which direction is save to go
+      // TODO umfahren accordingly
+      abstand_umfahren();
+      // TODO remember to implement that the line may not continue immediately behind the obstacle but could be just around the corner or smthng
+      bigState = DRIVING;
+      break;
 
-  //   case DRIVING:
-  //     if (digitalRead(motorPin)) {
-  //       bigState = STOP;
-  //     }
-  //     if (no_line_cycle_count >= 35) {
-  //       bigState = OPFER;
-  //       break; // Jump prematurely out of the switch-case
-  //     }
+    case DRIVING:
+      if (digitalRead(motorPin)) {
+        bigState = STOP;
+      }
+      if (no_line_cycle_count >= 35) {
+        bigState = OPFER;
+        break; // Jump prematurely out of the switch-case
+      }
 
-  //     // if (left_line_cycle_count > right_line_cycle_count) {
-  //     //   digitalWrite(LEDR, HIGH);
-  //     //   digitalWrite(LEDG, HIGH);
-  //     //   digitalWrite(LEDB, LOW);
-  //     // }
-  //     // if (right_line_cycle_count > left_line_cycle_count) {
-  //     //   digitalWrite(LEDR, HIGH);
-  //     //   digitalWrite(LEDG, LOW);
-  //     //   digitalWrite(LEDB, HIGH);
-  //     // }
-  //     // if (left_line_cycle_count == right_line_cycle_count) {
-  //     //   digitalWrite(LEDR, LOW);
-  //     //   digitalWrite(LEDG, LOW);
-  //     //   digitalWrite(LEDB, LOW);
-  //     // }
+      readDistance();
+      if (distance_val <= obstacle_threshold) {
+        bigState = ABSTAND;
+      }
 
-  //     readDistance();
-  //     if (distance_val <= obstacle_threshold) {
-  //       abstand_umfahren(); // TODO stateify abstand
-  //     }
+      // TODO implement driving logic
+      // move_as_angle(cam_data.angle); oder so
+      // switch (state) {
+      //   
+      // }
+
+      if (isRed()) {
+        stop();
+        bigState = STOP;
+      }
+
+      break;
+  }
+
+
   //     switch (state) {
   //       case crossing:
   //         if (left_line_cycle_count > right_line_cycle_count) kreuzung(-1);
