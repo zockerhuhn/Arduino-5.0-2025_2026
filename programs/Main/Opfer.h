@@ -26,6 +26,7 @@ void StraightenByWall() {
   digitalWrite(LEDR, HIGH);
 }
 
+// TODO update 
 void opfer() {
   digitalWrite(LEDR, HIGH);
   digitalWrite(LEDG, HIGH);

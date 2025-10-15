@@ -40,6 +40,8 @@ GRAYSCALE_THRESHOLD = [(0, 90)]
 # Threshold which RGB values are considered green (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi)
 GREEN_THRESHOLD = [(20, 70, -40, -10, 0, 35)]
 
+RED_THRESHOLD = [(25, 40, 45, 60, 0, 40)]
+
 # Threshold how many pixels a blob must have to be relevant
 pixel_threshold = 80
 density_threshold = 0.45
@@ -164,10 +166,18 @@ while True:
     clock.tick()  # Track elapsed milliseconds between snapshots().
     img = sensor.snapshot().crop(roi=(0, 0, width, cut_height))
 
-    #continue
 
-    # TODO check for red
-    
+
+    # Check for red
+    for blob in img.find_blobs(RED_THRESHOLD, pixels_threshold=200, area_threshold=200):
+        #img.draw_edges(blob.min_corners(), blob_color)
+        #img.draw_cross(blob.cx(), blob.cy(), blob_color)
+        #img.draw_rectangle(*blob.rect(), color = (255,255,255), fill = True)
+
+        # TODO be a bit more careful about declaring red
+        red_line_detected =  True
+
+    continue
 
     # Create green mask
     for blob in img.find_blobs(GREEN_THRESHOLD, pixels_threshold=200, area_threshold=200):
@@ -374,6 +384,8 @@ while True:
                 angle = 900
             if blob_right:
                 angle = -900
+            if red_line_detected:
+                angle = 3000
             send_to_arduino(angle)
         else:
             # Angle is considered "invalid" at 360° = 3600

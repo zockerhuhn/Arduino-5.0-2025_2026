@@ -118,13 +118,13 @@ void loop()
   // TODO redesign everything for state machines
 
   // Occasionally (if new data is sent) updates the receiving data
-  new_data = openMvCam.loop();
+  has_new_data = openMvCam.loop();
 
-  if (new_data) {
+  if (has_new_data) {
     cycles_since_data = 0;
-    Serial.print("angle: " + String(received_cam_angle) + "\n");
-    // TODO code...
-    // move_as_angle(received_cam_angle);
+    
+    append_to_window(received_cam_angle);
+    get_angle();
 
   } 
   else {
@@ -138,8 +138,9 @@ void loop()
   switch (bigState) {
     case STOP:
       stop();
+      
       // check for red!!!
-      if (false /*TODO check for red*/) { 
+      if (is_red) { 
         digitalWrite(LEDR, HIGH);
         // TODO implement waiting 8 seconds with Chrono or smthng
       }
@@ -162,21 +163,26 @@ void loop()
 
           case LOG_LINE: 
             // TODO implement check for cam and look what line may be
-            Serial.println("Angle:", cam_data.angle);
+            // Probably not really good or smart
+            Serial.println("Angle:", cam_angle);
             break;
 
           case LOG_COLOUR:
-            // Serial.println(cam_data.green_left * "Green left" + " " + cam_data.green_right * "Green right")
-            if (cam_data.green_left && cam_data.green_right) Serial.println("green green");
-            else if (cam_data.green_left) Serial.println("green -----");
-            else if (cam_data.green_right) Serial.println("----- green");
-            else Serial.println("----- -----");
+            if (is_red) Serial.println("reeeeeeeeed"); 
+            else {
+              if (green_left && green_right) Serial.println("green green");
+              else if (green_left) Serial.println("green -----");
+              else if (green_right) Serial.println("----- green");
+              else Serial.println("----- -----");
+            }
             break;
         }
   
-        if (!digitalRead(motorPin) && true/*TODO remember to check that no red is seen*/) {
+        if (!digitalRead(motorPin) && !is_red/*ensure no red is seen*/) {
           bigState = DRIVING;
-        }   
+        } else if (!digitalRead(motorPin) && is_red) {
+          bigState = STOP;
+        }
       }
       break;
 
@@ -194,7 +200,8 @@ void loop()
       // TODO check which direction is save to go
       // TODO umfahren accordingly
       abstand_umfahren();
-      // TODO remember to implement that the line may not continue immediately behind the obstacle but could be just around the corner or smthng
+      // TODO remember to implement that the line may not continue immediately 
+      // behind the obstacle but could be just around the corner or smthng
       bigState = DRIVING;
       break;
 
@@ -212,20 +219,35 @@ void loop()
         bigState = ABSTAND;
       }
 
-      // TODO implement driving logic
-      // move_as_angle(cam_data.angle); oder so
-      // switch (state) {
-      //   
-      // }
-
-      if (isRed()) {
-        stop();
-        bigState = STOP;
+      // Check for valid angle
+      if (-900 < cam_angle && cam_angle < 900) {
+        // Basically move according to the angle with specific speed
+        move_as_angle(cam_angle);
+      } else {
+        // Kreuzungslogik
+        if (green_left && green_right) {
+          // Turn by 180 degrees
+        }
+        else if (green_left) {
+          // Turn by 90 degrees left
+        }
+        else if (green_right) {
+          // Turn by 90 degrees right
+        }
+        else if (is_red) {
+          stop();
+          bigState = STOP;
+        }
+        else if (cam_angle == 3600) {
+          // No angle seen
+          no_line_cycle_count++;
+        }
       }
 
+      // make sure processor isn't maxed out
+      delay(1);
       break;
   }
-
 
   //     switch (state) {
   //       case crossing:

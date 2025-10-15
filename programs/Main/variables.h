@@ -8,11 +8,19 @@ openmv::rpc_callback_buffer<8> callback_buffer;
 openmv::rpc_hardware_serial1_uart_slave openMvCam(115200);
 
 // Flag tracking if data from the camera is received this loop
-bool new_data = false;
+bool has_new_data = false;
 int cycles_since_data = 0;
 
 // Data received from OpenMV Cam
 uint16_t received_cam_angle;
+const int NUM_ANGLE_VALS = 5;
+uint16_t angle_array[NUM_ANGLE_VALS];
+uint16_t cam_angle;
+
+// Kreuzungs-Data
+bool green_left = false;
+bool green_right = false;
+bool is_red = false;
 
 // Lines
 enum Lines {
@@ -64,15 +72,15 @@ enum BigState {
 };
 BigState bigState;
 
-enum State {
-  straight_driving,
-  crossing,
-  strive_left,
-  strive_right,
-  turn_left_90,
-  turn_right_90,
-};
-State state = straight_driving;
+// enum State {
+//   angle_driving,
+//   crossing,
+//   strive_left,
+//   strive_right,
+//   turn_left_90,
+//   turn_right_90,
+// };
+// State state = angle_driving;
 
 // Debug modes:
 enum DebugMode {
