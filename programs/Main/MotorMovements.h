@@ -1,6 +1,8 @@
 #pragma once
+#define PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286
 
 #include "Distance.h"
+#include <math.h>
 
 void motor_setup() {
   motors.initialize();
@@ -32,10 +34,32 @@ void straight(float speed = 1) //drive straight
 // and the new speed overrides the old one
 void move_as_angle(int angle) {
   // TODO aaaaaaa is that even a good idea?
+  if (digitalRead(motorPin)) {
+    bigState = STOP;
+    return;
+  }
+  // regardless, the speed should be related to the angle in such a way
+  // that it is maximised at the angle 0 for both sides and be 0 at either extreme for the opposite side and 1 for the adjacent
+  // This is basically the point of trigonometry
+  double left_factor, right_factor;
+  if (angle == 0) left_factor = right_factor = 1;
+  else if (angle > 0) {
+    right_factor = cos(angle * PI / 1800);
+    left_factor = 1 - right_factor;
+  }
+  else if (angle < 0) {
+    left_factor = cos(angle * PI / 1800);
+    right_factor = 1 - right_factor;
+  }
+  Serial.println(String(left_factor) + " " + String(right_factor));
+  motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));
 }
+
 
 void left(int turnBy=0, float speed = 1) //turn left
 {
+  // This depends on the compass, which should therefore be strongly reconsidered
+  // But the camera can probably correct the resulting error
   stop();
   if (digitalRead(motorPin)) {
     bigState = STOP;
@@ -86,112 +110,33 @@ void right(int turnBy=0, float speed = 1) //turn right
   }
 }
 
-void straight_left(float speed = 1) //drive straight but pull left
-{
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  // Configuration for left
-  motors.flipLeftMotor(true);
-  motors.flipRightMotor(true);
-  motors.setSpeeds((int)(40 * speed), (int)(100 * speed));
-}
+// void straight_left(float speed = 1) //drive straight but pull left
+// {
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//   }
+//   // Configuration for left
+//   motors.flipLeftMotor(true);
+//   motors.flipRightMotor(true);
+//   motors.setSpeeds((int)(40 * speed), (int)(100 * speed));
+// }
 
-void straight_right(float speed = 1) //drive straight but pull right
-{
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  // Configuration for right
-  motors.flipLeftMotor(false);
-  motors.flipRightMotor(false);
-  motors.setSpeeds((int)(100 * speed), (int)(40 * speed));
-}
+// void straight_right(float speed = 1) //drive straight but pull right
+// {
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//   }
+//   // Configuration for right
+//   motors.flipLeftMotor(false);
+//   motors.flipRightMotor(false);
+//   motors.setSpeeds((int)(100 * speed), (int)(40 * speed));
+// }
 
-
-void left_to_line(float speed = 1, int turnBy = 70) {
-  // // going left until it finds a line  
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // readDirection();
-  // int initialDirection = direction;
-  // left(0, speed);
-  // while ((calculatedReflection = calculateReflection()) != normalLine) {
-  //   delay(10);
-  //   readDirection();
-  //   if (calculatedReflection == leftLine) {
-  //     straight_left();
-  //     break;
-  //   } else if (calculatedReflection == rightLine) {
-  //     straight_right();
-  //     break;
-  //   } else if (calculatedReflection == sideLeftLine) {
-  //     state = left_side;
-  //     break;
-  //   } else if (calculatedReflection == sideRightLine) {
-  //     state = right_side;
-  //     break;
-  //   }
-  //   if ((((initialDirection - turnBy) + 360) % 360) == direction) {
-  //     break;
-  //   }
-
-  //   if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // }
-  // state = straight_driving;
-}
-
-void right_to_line(float speed = 1, int turnBy = 70) {
-  // // going right until it finds a line  
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // readDirection();
-  // int initialDirection = direction;
-  // right(0, speed);
-  // while ((calculatedReflection = calculateReflection()) != normalLine) {
-  //   delay(10);
-  //   readDirection();
-  //   if (calculatedReflection == leftLine) {
-  //     straight_left();
-  //     break;
-  //   } else if (calculatedReflection == rightLine) {
-  //     straight_right();
-  //     break;
-  //   }
-  //   else if (calculatedReflection == sideLeftLine) {
-  //     state = left_side;
-  //     break;
-  //   } else if (calculatedReflection == sideRightLine) {
-  //     state = right_side;
-  //     break;
-  //   }
-  //   if (((initialDirection + turnBy) % 360) == direction) {
-  //     break;
-  //   }
-
-  //   if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // }
-  // state = straight_driving;
-}
-
+// TODO check which side is "safe" to drive 
 void abstand_umfahren() {
   digitalWrite(LED_BUILTIN, HIGH);
   if (digitalRead(motorPin)) {
@@ -200,12 +145,15 @@ void abstand_umfahren() {
     return;
     }
 
+  // Go backwards a bit to put distance between robot and obstacle
   straight(-1);
   while (distance_val < 90) {
     readDistance();
     delay(10);
   }
   stop();
+
+  // Then, check which direction is better 
 
 
   right();

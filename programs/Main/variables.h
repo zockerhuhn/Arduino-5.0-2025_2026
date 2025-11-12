@@ -22,28 +22,17 @@ bool green_left = false;
 bool green_right = false;
 bool is_red = false;
 
-// Lines
-enum Lines {
-  sideRightLine,
-  sideLeftLine,
-  hardLeftLine,
-  hardRightLine,
-  leftLine,
-  rightLine,
-  frontalLine,
-  extremeLine,
-  normalLine,
-  noLine,
-};
-Lines calculatedReflection;
-
 //MOTOREN
 // Dieses Objekt repräsentiert 2 Motor-Kanäle (1..2 Motoren pro Kanal):
 RescueBoardMotors motors = RescueBoardMotors();
 #define motorPin D12
 #define calibrationPin A6
 
-//ABSTANDSSENSOR
+// TODO tune!!!
+int base_left_speed = 50;
+int base_right_speed = 50;
+
+//ABSTANDSSENSOR 1
 const uint16_t LOST_CONNECTION = -1;
 uint16_t last_distance_val = LOST_CONNECTION;
 VL53L0X tofSensor = VL53L0X();
@@ -63,7 +52,7 @@ int opfer_wall_threshold = 100;
 uint16_t direction;
 uint16_t current_direction;
 
-// OBSOLETE STATE MACHINE
+// STATE MACHINE
 enum BigState {
   OPFER,
   ABSTAND,
@@ -71,16 +60,6 @@ enum BigState {
   STOP,
 };
 BigState bigState;
-
-// enum State {
-//   angle_driving,
-//   crossing,
-//   strive_left,
-//   strive_right,
-//   turn_left_90,
-//   turn_right_90,
-// };
-// State state = angle_driving;
 
 // Debug modes:
 enum DebugMode {

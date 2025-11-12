@@ -14,11 +14,13 @@ def send_to_arduino(*vals_to_send):
     # Send the data to the arduino
     # Angle is saved as an integer dezidegree(?),
     # which means we have a precision of 1/10 for an angle in degrees
-    result = interface.call("sent", struct.pack("<H", *vals_to_send))
-    # Check if the arduino answers something valid
-    if result is not None and len(result):
-        return True
-    print("Response invalid!", result)
+    print(*vals_to_send)
+    if send_data:
+        result = interface.call("sent", struct.pack("<H", *vals_to_send))
+        # Check if the arduino answers something valid
+        if result is not None and len(result):
+            return True
+        print("Response invalid!", result)
     return False
 
 ## Debugging flags
@@ -40,7 +42,7 @@ GRAYSCALE_THRESHOLD = [(0, 90)]
 # Threshold which RGB values are considered green (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi)
 GREEN_THRESHOLD = [(20, 70, -40, -10, 0, 35)]
 
-RED_THRESHOLD = [(25, 40, 45, 60, 0, 40)]
+RED_THRESHOLD = [(25, 50, 45, 70, 20, 50)]
 
 # Threshold how many pixels a blob must have to be relevant
 pixel_threshold = 80
@@ -170,17 +172,19 @@ while True:
 
     # Check for red
     for blob in img.find_blobs(RED_THRESHOLD, pixels_threshold=200, area_threshold=200):
-        #img.draw_edges(blob.min_corners(), blob_color)
-        #img.draw_cross(blob.cx(), blob.cy(), blob_color)
-        #img.draw_rectangle(*blob.rect(), color = (255,255,255), fill = True)
+        # For red it isn't important if the line following gets broken, because it shouldn't run anyway
+        img.draw_edges(blob.min_corners(), blob_color)
+        img.draw_cross(blob.cx(), blob.cy(), blob_color)
+        img.draw_rectangle(*blob.rect(), color = (255,255,255), fill = True)
 
-        # TODO be a bit more careful about declaring red
+        # TODO be a bit more careful about declaring red,
+        # but seems fine for now
         red_line_detected =  True
 
-    continue
+    #continue
 
-    # Create green mask
-    for blob in img.find_blobs(GREEN_THRESHOLD, pixels_threshold=200, area_threshold=200):
+    # Create green mask ONLY in the lower ROI (TODO if green detection is bad, this may be an error)
+    for blob in img.find_blobs(GREEN_THRESHOLD, roi=(0, int(1/3 * height), width, int(1/3 * height)), pixels_threshold=200, area_threshold=200):
         #original_image.draw_edges(blob.min_corners(), blob_color)
         #original_image.draw_cross(blob.cx(), blob.cy(), blob_color)
         green_blobs.append(blob)
@@ -194,6 +198,8 @@ while True:
             invert=False,
             clear_background=False,
         )
+
+    continue
 
     img.to_grayscale().binary(GRAYSCALE_THRESHOLD)
 
@@ -259,7 +265,7 @@ while True:
         # Try to fix this pls
         line_angle_rad = calculate_modified_line_slope(mid_center_pos, top_center_pos)
 
-        if debug_print_important:
+        if debug_print: #_important
             if line_angle_rad != None:
                 print("Angle:", math.degrees(line_angle_rad))
             else:
@@ -324,9 +330,11 @@ while True:
         if debug_print:
             print(vertical_line_range)
 
+        """
         if show_blob_info:
             img.draw_line(int((vertical_line_range[0] + 0.5) * width / num_kreuzung_segments), 0, int((vertical_line_range[0] + 0.5) * width / num_kreuzung_segments), height, color = blob_color, thickness = 3)
             img.draw_line(int((vertical_line_range[1] + 0.5) * width / num_kreuzung_segments), 0, int((vertical_line_range[1] + 0.5) * width / num_kreuzung_segments), height, color = blob_color, thickness = 3)
+        """
 
         # Find split from the line
 
@@ -346,6 +354,22 @@ while True:
         if debug_print:
             print("Length of right line:", right_line_length)
 
+        # TODO TODO TODO
+        # If a line of blobs is found either left or right and a single blob continues at the top,
+        # its also a crossing
+
+        # Find if a line exists left of the range at the bottom
+        left_line_length_bottom = 0
+        for i in range(vertical_line_range[0], 0, -1):
+            if blob_array_mid[i] and blob_array_mid[i-1]:
+                left_line_length_bottom += 1
+        # Then find if a line exists right of the range at the bottom
+        right_line_length_bottom = 0
+        for i in range(vertical_line_range[1] + 1, num_kreuzung_segments):
+            if blob_array_mid[i - 1] and blob_array_mid[i]:
+                right_line_length_bottom += 1
+
+
         if debug_print_important:
             if left_line_length >= 2 and right_line_length >= 2:
                 # Kreuzung detected
@@ -363,30 +387,71 @@ while True:
                     print("Right!")
                 else:
                     print("Kein grün :(")
+            if blob_array_top[vertical_line_range[0]]:
+                if left_line_length_bottom >= 3:
+                    # left-half-Kreuzung detected
+                    for blob in green_blobs:
+                        # TODO ensure blobs are followed by black!!!
+                        if blob.cx() < vertical_line_pos * roi_width:
+                            blob_left = 1
+                        else:
+                            blob_right = 1
+                    if blob_left and blob_right:
+                        print("Turn!")
+                    elif blob_left:
+                        print("Left!")
+                    elif blob_right:
+                        print("Right!")
+                    else:
+                        print("Kein grün :(")
+                elif right_line_length_bottom >= 3:
+                    # right-half-Kreuzung detected
+                    for blob in green_blobs:
+                        # TODO ensure blobs are followed by black!!!
+                        if blob.cx() < vertical_line_pos * roi_width:
+                            blob_left = 1
+                        else:
+                            blob_right = 1
+                    if blob_left and blob_right:
+                        print("Turn!")
+                    elif blob_left:
+                        print("Left!")
+                    elif blob_right:
+                        print("Right!")
+                    else:
+                        print("Kein grün :(")
             else:
                 print("Keine Kreuzung gefunden.")
 
     # Communicating with robot
 
-    if send_data:
-        # For now, only talk if there are actual infos
-        if weight_sum_top and weight_sum_mid:
-            # Send the angle and information about the left and right green spots
-            # Remember that the green spots will only get checked if a kreuzung is present!
-            angle = int(math.degrees(line_angle_rad) * 10)
+    # For now, only talk if there are actual infos
+    if weight_sum_top and weight_sum_mid:
+        # Send the angle and information about the left and right green spots
+        # Remember that the green spots will only get checked if a kreuzung is present!
+        angle = int(math.degrees(line_angle_rad) * 10)
 
-            # angle variable ranges from -900 to 900 (tho never actually the edges bc of how we calculate angles),
-            # so any other values are invalid
-            # We'll "reserve" some of these values to use for the kreuzung turns
-            if (blob_left and blob_right):
-                angle = 1800
-            if blob_left:
-                angle = 900
-            if blob_right:
-                angle = -900
-            if red_line_detected:
-                angle = 3000
-            send_to_arduino(angle)
+        # angle variable ranges from -900 to 900 (tho never actually the edges bc of how we calculate angles),
+        # so any other values are invalid
+        # We'll "reserve" some of these values to use for the kreuzung turns
+        if (blob_left and blob_right):
+            angle = 1800
+        if blob_left:
+            angle = 900
+        if blob_right:
+            angle = -900
+        if red_line_detected:
+            angle = 3000
+        send_to_arduino(angle)
+    else:
+        if weight_sum_mid:
+            if (len([b for b in blob_array_mid if b]) >= 5):
+                # If enough blobs exists, the line is probably approximately horizontal
+                send_to_arduino(901)
+        elif weight_sum_top:
+            if (len([b for b in blob_array_top if b]) >= 5):
+                # If enough blobs exists, the line is probably approximately horizontal
+                send_to_arduino(901)
         else:
             # Angle is considered "invalid" at 360° = 3600
             send_to_arduino(3600)
