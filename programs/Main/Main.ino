@@ -84,23 +84,23 @@ void setup()
     - Kamera (?)
   */
   
-  // ABSTANDSSENSOR-INITIALISIEREN
-  Serial.println("Initialisierung des 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
-  tofSensor.setBus(&Wire);
-  tofSensor.setAddress(NEW_TOF_ADDRESS);
-  if (!tofSensor.init()) {
-      delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
-      Serial.println("ToF Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
-      while (1);
-  }
-  // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
-  tofSensor.setTimeout(500);
-  // Reichweiter vergrößern (macht den Sensor ungenauer)
-  tofSensor.setSignalRateLimit(0.1);
-  tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
-  tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
-  // lasse Sensor die ganze Zeit an
-  tofSensor.startContinuous();
+  // // ABSTANDSSENSOR-INITIALISIEREN
+  // Serial.println("Initialisierung des 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
+  // tofSensor.setBus(&Wire);
+  // tofSensor.setAddress(NEW_TOF_ADDRESS);
+  // if (!tofSensor.init()) {
+  //     delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
+  //     Serial.println("ToF Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
+  //     while (1);
+  // }
+  // // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
+  // tofSensor.setTimeout(500);
+  // // Reichweiter vergrößern (macht den Sensor ungenauer)
+  // tofSensor.setSignalRateLimit(0.1);
+  // tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
+  // tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
+  // // lasse Sensor die ganze Zeit an
+  // tofSensor.startContinuous();
   // Initialise the default values for the "window", should be in variables but won't work there
   for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
   Serial.println("Initialisierung Abstandssensor abgeschlossen");
@@ -125,6 +125,7 @@ void loop()
     
     append_to_window(received_cam_angle);
     get_angle();
+    Serial.println(String(received_cam_angle));
 
   } 
   else {
@@ -164,7 +165,7 @@ void loop()
           case LOG_LINE: 
             // TODO implement check for cam and look what line may be
             // Probably not really good or smart
-            Serial.println("Angle:", cam_angle);
+            Serial.println("Angle:" +  String(cam_angle));
             break;
 
           case LOG_COLOUR:

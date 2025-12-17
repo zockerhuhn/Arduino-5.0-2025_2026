@@ -1,15 +1,16 @@
 #pragma once
 
 void update_cam_data(void* in_data, size_t in_data_len) {
-    if (in_data_len == sizeof(in_data)) {
+    if (2 * in_data_len == sizeof(in_data) /*my best guess is that python doesn't differentiate between signed and unsigned und just sends 4 bytes instead of 2, which we need to account for*/) {
         // Data is complete
         // Copying in_data buffer into receiving data structure
-        Serial.println("Writing received data to buffer");
+        // Serial.println("Writing received data to buffer");
         memcpy(&received_cam_angle, in_data, sizeof(received_cam_angle));
         
     }
     else {
-        Serial.println("Invalid data length AAAAAAAAA");
+        Serial.println("Invalid data length AAAAAAAAA" + String(in_data_len) + "/" + String(sizeof(in_data)));
+        memcpy(&received_cam_angle, in_data, sizeof(received_cam_angle));
     }
 }
 

@@ -12,10 +12,10 @@ bool has_new_data = false;
 int cycles_since_data = 0;
 
 // Data received from OpenMV Cam
-uint16_t received_cam_angle;
+int16_t received_cam_angle;
 const int NUM_ANGLE_VALS = 5;
 uint16_t angle_array[NUM_ANGLE_VALS];
-uint16_t cam_angle;
+int16_t cam_angle;
 
 // Kreuzungs-Data
 bool green_left = false;
