@@ -41,15 +41,16 @@ void move_as_angle(int angle) {
   // regardless, the speed should be related to the angle in such a way
   // that it is maximised at the angle 0 for both sides and be 0 at either extreme for the opposite side and 1 for the adjacent
   // This is basically the point of trigonometry
-  double left_factor, right_factor;
-  if (angle == 0) left_factor = right_factor = 1;
-  else if (angle > 0) {
+  double left_factor; double right_factor;
+  if (angle > 0) {
     right_factor = cos(angle * PI / 1800);
     left_factor = 1 - right_factor;
   }
   else if (angle < 0) {
     left_factor = cos(angle * PI / 1800);
     right_factor = 1 - right_factor;
+  } else {
+    left_factor = right_factor = 1;
   }
   Serial.println(String(left_factor) + " " + String(right_factor));
   motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));

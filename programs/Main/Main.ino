@@ -119,6 +119,7 @@ void loop()
 
   // Occasionally (if new data is sent) updates the receiving data
   has_new_data = openMvCam.loop();
+  // straight();
 
   if (has_new_data) {
     cycles_since_data = 0;

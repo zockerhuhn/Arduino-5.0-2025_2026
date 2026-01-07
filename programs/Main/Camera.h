@@ -22,7 +22,7 @@ void openmv_cam_setup() {
     Serial.println("Set up OpenMV Cam.");
 }
 
-void move_arr_back(uint16_t* arr, int size) {
+void move_arr_back(int16_t* arr, int size) {
     for (int i = 1; i < size; ++i) {
         arr[i-1] = arr[i];
     }
@@ -30,19 +30,18 @@ void move_arr_back(uint16_t* arr, int size) {
     arr[size-1] = 3600;
 }
 
-void append_to_window(uint16_t received_cam_angle) {
+void append_to_window(int16_t received_cam_angle) {
     move_arr_back(angle_array, NUM_ANGLE_VALS);
     angle_array[NUM_ANGLE_VALS - 1] = received_cam_angle;
 }
 
 void get_angle() {
-    uint16_t to_average[NUM_ANGLE_VALS] = {0};
     int green_left_count = 0;
     int green_right_count = 0;
     int turn_count = 0;
     int red_count = 0;
     for (int i = 0; i < NUM_ANGLE_VALS; ++i) {
-        uint16_t curr = angle_array[i];
+        int16_t curr = angle_array[i];
         if (curr != 3600) {
             green_left_count += curr == 900;
             green_right_count += curr == -900;
