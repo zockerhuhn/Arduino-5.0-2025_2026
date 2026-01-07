@@ -53,7 +53,9 @@ void setup() {
 
 void loop() {
     // Nachschauen, ob die OpenMV Cam dem Arduino was gesendet hat und die Werte abspeichern:
-    openMvCam.loop(); // könnte manchmal daten_aktualisieren() aufrufen
+    if (openMvCam.loop()) { // könnte manchmal daten_aktualisieren() aufrufen
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
 
     // jetzt könnte man die Daten irgendwie verwenden, zum Beispiel: daten_empfangen.value1
     Serial.println("OpenMV Daten: " +

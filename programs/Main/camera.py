@@ -8,7 +8,7 @@ import struct
 interface = rpc.rpc_uart_master(baudrate=115200)
 
 # Flag controlling if data will be transferred
-send_data = False
+send_data = True
 
 def send_to_arduino(*vals_to_send):
     # Send the data to the arduino
@@ -16,11 +16,13 @@ def send_to_arduino(*vals_to_send):
     # which means we have a precision of 1/10 for an angle in degrees
     print(*vals_to_send)
     if send_data:
-        result = interface.call("sent", struct.pack("<H", *vals_to_send))
+        interface.call("sent", struct.pack("<H", *vals_to_send))
         # Check if the arduino answers something valid
+        """
         if result is not None and len(result):
             return True
         print("Response invalid!", result)
+        """
     return False
 
 ## Debugging flags
