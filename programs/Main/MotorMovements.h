@@ -1,5 +1,5 @@
 #pragma once
-#define PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286
+// #define PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286
 
 #include "Distance.h"
 #include <math.h>
@@ -138,98 +138,98 @@ void right(int turnBy=0, float speed = 1) //turn right
 
 // TODO check which side is "safe" to drive 
 void abstand_umfahren() {
-  digitalWrite(LED_BUILTIN, HIGH);
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-    }
+//   digitalWrite(LED_BUILTIN, HIGH);
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//     }
 
-  // Go backwards a bit to put distance between robot and obstacle
-  straight(-1);
-  while (distance_val < 90) {
-    readDistance();
-    delay(10);
-  }
-  stop();
+//   // Go backwards a bit to put distance between robot and obstacle
+//   straight(-1);
+//   while (distance_val < 90) {
+//     readDistance();
+//     delay(10);
+//   }
+//   stop();
 
-  // Then, check which direction is better 
+//   // Then, check which direction is better 
 
 
-  right();
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  delay(2000);
+//   right();
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//   }
+//   delay(2000);
 
-  straight();
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  delay(4000);
+//   straight();
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//   }
+//   delay(4000);
   
 
-  left();
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  delay(2000);
+//   left();
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//   }
+//   delay(2000);
 
-  straight();
+//   straight();
 
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  delay(6500);
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//   }
+//   delay(6500);
   
 
-  left();
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  delay(2000);
+//   left();
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//   }
+//   delay(2000);
 
-  straight();
+//   straight();
 
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//   }
 
-  delay(1200);
-  while ((calculatedReflection = calculateReflection()) == noLine) {
-    if (digitalRead(motorPin)) {
-      stop();
-      bigState = STOP;
-      return;
-    }
-  }
+//   delay(1200);
+//   while ((calculatedReflection = calculateReflection()) == noLine) {
+//     if (digitalRead(motorPin)) {
+//       stop();
+//       bigState = STOP;
+//       return;
+//     }
+//   }
 
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  delay(1500);
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//   }
+//   delay(1500);
 
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  right_to_line(180);
+//   if (digitalRead(motorPin)) {
+//     stop();
+//     bigState = STOP;
+//     return;
+//   }
+//   right_to_line(180);
 
-  for (int i = 0; i < 5; i++) distance_array[i] = 65535;
-  digitalWrite(LED_BUILTIN, LOW);
+//   for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+//   digitalWrite(LED_BUILTIN, LOW);
 }
