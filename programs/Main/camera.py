@@ -10,13 +10,13 @@ interface = rpc.rpc_uart_master(baudrate=115200)
 # Flag controlling if data will be transferred
 send_data = True
 
-def send_to_arduino(*vals_to_send):
+def send_to_arduino(val):
     # Send the data to the arduino
     # Angle is saved as an integer dezidegree(?),
     # which means we have a precision of 1/10 for an angle in degrees
-    print(*vals_to_send)
+    print(val)
     if send_data:
-        interface.call("sent", struct.pack("<H", *vals_to_send))
+        interface.call("update_cam_data", struct.pack("<h", val))
         # Check if the arduino answers something valid
         """
         if result is not None and len(result):
@@ -55,6 +55,8 @@ width, height = 160, 120
 # Height from which the image will be processed
 cut_height = int(2/3 * height)
 img_center_x, img_center_y = 80, 60
+start_pos_x = 110 # 80
+start_pos_y = 80
 
 ## Adjustable ROI-parameters
 
@@ -133,9 +135,9 @@ def calculate_modified_line_slope(pos1, pos2) -> int | None:
     avg_pos.append((pos1[0] + pos2[0]) / 2)
     avg_pos.append((pos1[1] + pos2[1]) / 2)
 
-    line_mag = math.sqrt((avg_pos[0] - 80)**2 + (avg_pos[1] - 80)**2)
+    line_mag = math.sqrt((avg_pos[0] - start_pos_x)**2 + (avg_pos[1] - start_pos_y)**2)
     if line_mag > 0:
-        return -math.asin((avg_pos[0] - 80) / line_mag)
+        return -math.asin((avg_pos[0] - start_pos_x) / line_mag)
     return None
 
 # Array that saves the blobs that are found in the specified roi
@@ -201,7 +203,7 @@ while True:
             clear_background=False,
         )
 
-    continue
+    #continue
 
     img.to_grayscale().binary(GRAYSCALE_THRESHOLD)
 
@@ -259,7 +261,7 @@ while True:
         if show_line_following:
             x_pos = int((top_center_pos[0] + mid_center_pos[0])/2)
             y_pos = int((top_center_pos[1] + mid_center_pos[1])/2)
-            img.draw_line(x_pos, y_pos, 80, 80, color=angled_line_color, thickness=2)
+            img.draw_line(x_pos, y_pos, start_pos_x, start_pos_y, color=angled_line_color, thickness=2)
 
         if debug_print:
             print("Calculating angle of line...")
@@ -381,6 +383,7 @@ while True:
                         blob_left = 1
                     else:
                         blob_right = 1
+                """
                 if blob_left and blob_right:
                     print("Turn!")
                 elif blob_left:
@@ -389,6 +392,7 @@ while True:
                     print("Right!")
                 else:
                     print("Kein grün :(")
+                """
             if blob_array_top[vertical_line_range[0]]:
                 if left_line_length_bottom >= 3:
                     # left-half-Kreuzung detected
