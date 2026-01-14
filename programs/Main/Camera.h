@@ -27,12 +27,15 @@ void move_arr_back(int16_t* arr, int size) {
         arr[i-1] = arr[i];
     }
     // Write last array entry with invalid value
-    arr[size-1] = 3600;
+    arr[size-1] = 360;
 }
 
 void append_to_window(int16_t received_cam_angle) {
     move_arr_back(angle_array, NUM_ANGLE_VALS);
     angle_array[NUM_ANGLE_VALS - 1] = received_cam_angle;
+    // Serial.print("Window: ");
+    // for (int i = 0; i < NUM_ANGLE_VALS; ++i) Serial.print(String(angle_array[i]) + " ");
+    // Serial.print("\n");
 }
 
 void get_angle() {
@@ -40,31 +43,34 @@ void get_angle() {
     int green_right_count = 0;
     int turn_count = 0;
     int red_count = 0;
+    int avg = 0;
     for (int i = 0; i < NUM_ANGLE_VALS; ++i) {
         int16_t curr = angle_array[i];
-        if (curr != 3600) {
-            green_left_count += curr == 900;
-            green_right_count += curr == -900;
-            turn_count += curr == 1800;
-            red_count += curr == 3000;
+        if (curr != 360) {
+            green_left_count += (int)(curr == 90 || curr == 91);
+            green_right_count += (int)(curr == -90 || curr == -91);
+            turn_count += (int)(curr == 180);
+            red_count += (int)(curr == 300);
+            avg += curr;
         }
     }
     if (red_count >= 2) {
-        cam_angle = 3000;
+        cam_angle = 300;
         is_red = true;
     }
     else if (turn_count >= 3) {
-        cam_angle = 1800;
+        cam_angle = 180;
         green_left = green_right = true;
     }
     else if (green_left_count >= 3) {
-        cam_angle = 900;
+        cam_angle = 90;
         green_left = true;
     }
     else if (green_right_count >= 3) {
-        cam_angle = -900;
+        cam_angle = -90;
         green_right = true;
     } else {
-        // Leave cam_angle unchanged instead of potentially changing it to a wrong value
+      // Leave cam_angle unchanged instead of potentially changing it to a wrong value
+      cam_angle = (int)(avg / NUM_ANGLE_VALS);
     }
 }

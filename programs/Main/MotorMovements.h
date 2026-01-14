@@ -7,8 +7,8 @@
 void motor_setup() {
   motors.initialize();
   // falls man global die Motor-Drehrichtung ändern möchte:
-  motors.flipLeftMotor(false); // nur notwendig, wenn man true reinschreibt
-  motors.flipRightMotor(true); // nur notwendig, wenn man true reinschreibt
+  motors.flipLeftMotor(false); 
+  motors.flipRightMotor(false);
 }
 
 void stop()
@@ -24,8 +24,8 @@ void straight(float speed = 1) //drive straight
     return;
   }
   motors.flipLeftMotor(false);
-  motors.flipRightMotor(true);
-  motors.setSpeeds((int)(42 * speed),(int)(50 * speed)); //prevent motor drifting
+  motors.flipRightMotor(false);
+  motors.setSpeeds((int)(base_left_speed * speed),(int)(base_right_speed * speed)); //prevent motor drifting
 }
 
 // Moves the robot according to the angle. 
@@ -42,20 +42,33 @@ void move_as_angle(int angle) {
   // that it is maximised at the angle 0 for both sides and be 0 at either extreme for the opposite side and 1 for the adjacent
   // This is basically the point of trigonometry
   double left_factor; double right_factor;
-  if (angle > 0) {
-    right_factor = cos(angle * PI / 1800);
-    left_factor = 1 - right_factor;
+  left_factor = 1;
+  right_factor = 1;
+
+  if (angle > 10) {
+    right_factor = 1.5 * cos(angle * PI / 180);
+    left_factor = 0;
   }
-  else if (angle < 0) {
-    left_factor = cos(angle * PI / 1800);
-    right_factor = 1 - right_factor;
-  } else {
-    left_factor = right_factor = 1;
+  else if (angle < -10) {
+    left_factor = 1.5 * cos(angle * PI / 180);
+    right_factor = 0;
   }
+
+  if (angle > 35) {
+    right_factor = cos(angle * PI / 180);
+    // TODO find good way to calculate the other factor
+    left_factor = -(double)(right_factor / 2);
+  }
+  else if (angle < -35) {
+    left_factor = cos(angle * PI / 180);
+    right_factor = -(double)(left_factor / 2);
+  }
+
+
+
   Serial.println(String(left_factor) + " " + String(right_factor));
   motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));
 }
-
 
 void left(int turnBy=0, float speed = 1) //turn left
 {
@@ -68,9 +81,7 @@ void left(int turnBy=0, float speed = 1) //turn left
   }
   readDirection();
   int initialDirection = direction;
-  motors.flipLeftMotor(true);
-  motors.flipRightMotor(true);
-  motors.setSpeeds((int)(70 * speed), (int)(75 * speed));
+  motors.setSpeeds(-(int)(base_left_speed * speed), (int)(base_right_speed * speed));
   if (turnBy!=0) {
     while ((((initialDirection - turnBy) + 360) % 360) != direction) {
       delay(1);
@@ -94,9 +105,7 @@ void right(int turnBy=0, float speed = 1) //turn right
   }
   readDirection();
   int initialDirection = direction;
-  motors.flipLeftMotor(false);
-  motors.flipRightMotor(false);
-  motors.setSpeeds(70 * speed, 75 * speed);
+  motors.setSpeeds((int)(base_left_speed * speed), -(int)(base_right_speed * speed));
   if (turnBy != 0) {
     while (((initialDirection + turnBy) % 360) != direction) {
       delay(1);

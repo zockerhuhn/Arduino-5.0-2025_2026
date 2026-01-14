@@ -120,31 +120,36 @@ void loop()
   // Occasionally (if new data is sent) updates the receiving data
   has_new_data = openMvCam.loop();
   // straight();
-
+  digitalWrite(LEDR, (PinStatus)!has_new_data);
+  digitalWrite(LEDG, (PinStatus)has_new_data);
   if (has_new_data) {
     cycles_since_data = 0;
-    
     append_to_window(received_cam_angle);
     get_angle();
-    Serial.println(String(received_cam_angle));
-
+    Serial.println("received angle: " + String(received_cam_angle));
   } 
   else {
     Serial.println("No new data");
     cycles_since_data++;
-    if (cycles_since_data > 35 /*TODO adjust value*/) {
-      Serial.println("Connection lost?");
-    }
+    // if (cycles_since_data > 35 /*TODO adjust value*/) {
+    //   Serial.println("Connection lost?");
+    // }
+    if (cycles_since_data > 5) stop();
   }
 
   switch (bigState) {
     case STOP:
       stop();
-      
       // check for red!!!
       if (is_red) { 
         digitalWrite(LEDR, HIGH);
         // TODO implement waiting 8 seconds with Chrono or smthng
+        delay(8000);
+        digitalWrite(LEDR, LOW);
+        for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+        get_angle();
+        bigState = DRIVING;
+        break;
       }
       else {
         delay(100);
@@ -216,38 +221,76 @@ void loop()
         break; // Jump prematurely out of the switch-case
       }
 
-      readDistance();
-      if (distance_val <= obstacle_threshold) {
-        bigState = ABSTAND;
-      }
+      // readDistance();
+      // if (distance_val <= obstacle_threshold) {
+      //   bigState = ABSTAND;
+      // }
 
       // Check for valid angle
-      if (-900 < cam_angle && cam_angle < 900) {
+      if (-90 < cam_angle && cam_angle < 90) {
+        Serial.println("drive by angle: " + String(cam_angle));
+
+        digitalWrite(LEDG, LOW);
+        digitalWrite(LEDB, LOW);
         // Basically move according to the angle with specific speed
         move_as_angle(cam_angle);
       } else {
         // Kreuzungslogik
         if (green_left && green_right) {
           // Turn by 180 degrees
+          Serial.println("Turn!");
+          digitalWrite(LEDG, HIGH);
+          digitalWrite(LEDB, HIGH);
+          digitalWrite(LEDR, HIGH);
+          stop();
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+          get_angle();
+          break;
         }
         else if (green_left) {
           // Turn by 90 degrees left
+          digitalWrite(LEDG, HIGH);
+          digitalWrite(LEDB, HIGH);
+          digitalWrite(LEDR, LOW);
+          Serial.println("Left!");
+          straight();
+          delay(200);
+          // Let cam correct the rest
+          left(75);
+          // Write invalid data to the vals
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+          get_angle();
+          break;
         }
         else if (green_right) {
           // Turn by 90 degrees right
+          digitalWrite(LEDG, LOW);
+          digitalWrite(LEDB, HIGH);
+          digitalWrite(LEDR, HIGH);
+          Serial.println("Right.");
+          straight();
+          delay(200);
+          right(75);
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+          get_angle();
+          break;
         }
         else if (is_red) {
+          digitalWrite(LEDG, LOW);
+          digitalWrite(LEDB, LOW);
+          digitalWrite(LEDR, HIGH);
           stop();
           bigState = STOP;
         }
-        else if (cam_angle == 3600) {
+        else if (cam_angle == 360) {
+          Serial.println("No line seen...");
           // No angle seen
           no_line_cycle_count++;
         }
       }
 
       // make sure processor isn't maxed out
-      delay(1);
+      delay(10);
       break;
   }
 
