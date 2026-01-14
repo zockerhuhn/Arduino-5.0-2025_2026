@@ -3,6 +3,14 @@ import time
 import math
 import rpc
 import struct
+import pyb
+
+# OpenMV M7
+
+# LEDs
+red_led = pyb.LED(1)
+green_led = pyb.LED(2)
+blue_led = pyb.LED(3)
 
 ## Arduino-Camera-Communication
 interface = rpc.rpc_uart_master(baudrate=115200)
@@ -16,13 +24,13 @@ def send_to_arduino(val):
     # which means we have a precision of 1/10 for an angle in degrees
     print(val)
     if send_data:
-        interface.call("update_cam_data", struct.pack("<h", val))
+        result = interface.call("update_cam_data", struct.pack("<h", val))
         # Check if the arduino answers something valid
-        """
-        if result is not None and len(result):
+        if result is not None:
+            #red_led.off()
             return True
         print("Response invalid!", result)
-        """
+        #red_led.on()
     return False
 
 ## Debugging flags
@@ -55,7 +63,7 @@ width, height = 160, 120
 # Height from which the image will be processed
 cut_height = int(2/3 * height)
 img_center_x, img_center_y = 80, 60
-start_pos_x = 110 # 80
+start_pos_x = 103 # 80
 start_pos_y = 80
 
 ## Adjustable ROI-parameters
@@ -435,32 +443,39 @@ while True:
     if weight_sum_top and weight_sum_mid:
         # Send the angle and information about the left and right green spots
         # Remember that the green spots will only get checked if a kreuzung is present!
-        angle = int(math.degrees(line_angle_rad) * 10)
+        angle = int(math.degrees(line_angle_rad))
 
-        # angle variable ranges from -900 to 900 (tho never actually the edges bc of how we calculate angles),
+        # angle variable ranges from -90 to 90 (tho never actually the edges bc of how we calculate angles),
         # so any other values are invalid
         # We'll "reserve" some of these values to use for the kreuzung turns
         if (blob_left and blob_right):
-            angle = 1800
+            angle = 180
         if blob_left:
-            angle = 900
+            angle = 90
         if blob_right:
-            angle = -900
+            angle = -90
         if red_line_detected:
-            angle = 3000
+            angle = 300
         send_to_arduino(angle)
     else:
         if weight_sum_mid:
-            if (len([b for b in blob_array_mid if b]) >= 5):
-                # If enough blobs exists, the line is probably approximately horizontal
-                send_to_arduino(901)
+            if (len([b for b in blob_array_mid[:3] if b]) >= 3):
+                # If enough blobs on the left exists, the line is probably approximately horizontal
+                send_to_arduino(91)
+            if (len([b for b in blob_array_mid[4:] if b]) >= 3):
+                # Analogue for the right
+                send_to_arduino(-91)
+
         elif weight_sum_top:
-            if (len([b for b in blob_array_top if b]) >= 5):
-                # If enough blobs exists, the line is probably approximately horizontal
-                send_to_arduino(901)
+            if (len([b for b in blob_array_top[:3] if b]) >= 3):
+                # If enough blobs on the left exists, the line is probably approximately horizontal
+                send_to_arduino(91)
+            if (len([b for b in blob_array_top[4:] if b]) >= 3):
+                # Analogue for the right
+                send_to_arduino(-91)
         else:
-            # Angle is considered "invalid" at 360° = 3600
-            send_to_arduino(3600)
+            # Angle is considered "invalid" at 360°
+            send_to_arduino(360)
 
     if debug_print:
         print("FPS:", clock.fps())  # Note: Your OpenMV Cam runs about half as fast while
