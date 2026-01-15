@@ -215,6 +215,8 @@ while True:
 
     img.to_grayscale().binary(GRAYSCALE_THRESHOLD)
 
+    #continue
+
     if show_line_following:
         # Draw circle in the center
         img.draw_circle(img_center_x, img_center_y, 5, (50, 50, 50), 1, True)
@@ -266,9 +268,9 @@ while True:
 
     # Combining knowledge
     if weight_sum_top and weight_sum_mid:
+        x_pos = int((top_center_pos[0] + mid_center_pos[0])/2)
+        y_pos = int((top_center_pos[1] + mid_center_pos[1])/2)
         if show_line_following:
-            x_pos = int((top_center_pos[0] + mid_center_pos[0])/2)
-            y_pos = int((top_center_pos[1] + mid_center_pos[1])/2)
             img.draw_line(x_pos, y_pos, start_pos_x, start_pos_y, color=angled_line_color, thickness=2)
 
         if debug_print:
@@ -342,11 +344,12 @@ while True:
         if debug_print:
             print(vertical_line_range)
 
-        """
+
         if show_blob_info:
-            img.draw_line(int((vertical_line_range[0] + 0.5) * width / num_kreuzung_segments), 0, int((vertical_line_range[0] + 0.5) * width / num_kreuzung_segments), height, color = blob_color, thickness = 3)
-            img.draw_line(int((vertical_line_range[1] + 0.5) * width / num_kreuzung_segments), 0, int((vertical_line_range[1] + 0.5) * width / num_kreuzung_segments), height, color = blob_color, thickness = 3)
-        """
+            img.draw_line(int(vertical_line_pos * width / num_kreuzung_segments), 0, int(vertical_line_pos * width / num_kreuzung_segments), height, color = blob_color, thickness = 3)
+            #img.draw_line(int((vertical_line_range[0] + 0.5) * width / num_kreuzung_segments), 0, int((vertical_line_range[0] + 0.5) * width / num_kreuzung_segments), height, color = blob_color, thickness = 3)
+            #img.draw_line(int((vertical_line_range[1] + 0.5) * width / num_kreuzung_segments), 0, int((vertical_line_range[1] + 0.5) * width / num_kreuzung_segments), height, color = blob_color, thickness = 3)
+
 
         # Find split from the line
 
@@ -382,60 +385,64 @@ while True:
                 right_line_length_bottom += 1
 
 
-        if debug_print_important:
-            if left_line_length >= 2 and right_line_length >= 2:
-                # Kreuzung detected
+        if left_line_length >= 2 and right_line_length >= 2:
+            # Kreuzung detected
+            for blob in green_blobs:
+            # TODO ensure blobs are followed by black!!!
+                if blob.cx() - roi_width < vertical_line_pos * roi_width:
+                    blob_left = 1
+                else:
+                    blob_right = 1
+            """
+            if blob_left and blob_right:
+                print("Turn!")
+            elif blob_left:
+                print("Left!")
+            elif blob_right:
+                print("Right!")
+            else:
+                print("Kein grün :(")
+            """
+        if blob_array_top[vertical_line_range[0]]:
+            if left_line_length_bottom >= 3:
+                # left-half-Kreuzung detected
                 for blob in green_blobs:
-                # TODO ensure blobs are followed by black!!!
+                    # TODO ensure blobs are followed by black!!!
+                    # TODO TODO TODO
+                    if blob.cx() - roi_width < vertical_line_pos * roi_width:
+                        blob_left = 1
+                    else:
+                        blob_right = 1
+                if debug_print_important:
+                    if blob_left and blob_right:
+                        print("Turn!")
+                    elif blob_left:
+                        print("Left!")
+                    elif blob_right:
+                        print("Right!")
+                    else:
+                        print("Kein grün :(")
+                else:
+                    print("Keine Kreuzung gefunden.")
+            elif right_line_length_bottom >= 3:
+                # right-half-Kreuzung detected
+                for blob in green_blobs:
+                    # TODO ensure blobs are followed by black!!!
                     if blob.cx() < vertical_line_pos * roi_width:
                         blob_left = 1
                     else:
                         blob_right = 1
-                """
-                if blob_left and blob_right:
-                    print("Turn!")
-                elif blob_left:
-                    print("Left!")
-                elif blob_right:
-                    print("Right!")
+                if debug_print_important:
+                    if blob_left and blob_right:
+                        print("Turn!")
+                    elif blob_left:
+                        print("Left!")
+                    elif blob_right:
+                        print("Right!")
+                    else:
+                        print("Kein grün :(")
                 else:
-                    print("Kein grün :(")
-                """
-            if blob_array_top[vertical_line_range[0]]:
-                if left_line_length_bottom >= 3:
-                    # left-half-Kreuzung detected
-                    for blob in green_blobs:
-                        # TODO ensure blobs are followed by black!!!
-                        if blob.cx() < vertical_line_pos * roi_width:
-                            blob_left = 1
-                        else:
-                            blob_right = 1
-                    if blob_left and blob_right:
-                        print("Turn!")
-                    elif blob_left:
-                        print("Left!")
-                    elif blob_right:
-                        print("Right!")
-                    else:
-                        print("Kein grün :(")
-                elif right_line_length_bottom >= 3:
-                    # right-half-Kreuzung detected
-                    for blob in green_blobs:
-                        # TODO ensure blobs are followed by black!!!
-                        if blob.cx() < vertical_line_pos * roi_width:
-                            blob_left = 1
-                        else:
-                            blob_right = 1
-                    if blob_left and blob_right:
-                        print("Turn!")
-                    elif blob_left:
-                        print("Left!")
-                    elif blob_right:
-                        print("Right!")
-                    else:
-                        print("Kein grün :(")
-            else:
-                print("Keine Kreuzung gefunden.")
+                    print("Keine Kreuzung gefunden.")
 
     # Communicating with robot
 
@@ -461,18 +468,18 @@ while True:
         if weight_sum_mid:
             if (len([b for b in blob_array_mid[:3] if b]) >= 3):
                 # If enough blobs on the left exists, the line is probably approximately horizontal
-                send_to_arduino(91)
+                send_to_arduino(89)
             if (len([b for b in blob_array_mid[4:] if b]) >= 3):
                 # Analogue for the right
-                send_to_arduino(-91)
+                send_to_arduino(-89)
 
         elif weight_sum_top:
             if (len([b for b in blob_array_top[:3] if b]) >= 3):
                 # If enough blobs on the left exists, the line is probably approximately horizontal
-                send_to_arduino(91)
+                send_to_arduino(89)
             if (len([b for b in blob_array_top[4:] if b]) >= 3):
                 # Analogue for the right
-                send_to_arduino(-91)
+                send_to_arduino(-89)
         else:
             # Angle is considered "invalid" at 360°
             send_to_arduino(360)
