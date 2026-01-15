@@ -47,11 +47,11 @@ void get_angle() {
     for (int i = 0; i < NUM_ANGLE_VALS; ++i) {
         int16_t curr = angle_array[i];
         if (curr != 360) {
-            green_left_count += (int)(curr == 90 || curr == 91);
-            green_right_count += (int)(curr == -90 || curr == -91);
+            green_left_count += (int)(curr == 90);
+            green_right_count += (int)(curr == -90);
             turn_count += (int)(curr == 180);
             red_count += (int)(curr == 300);
-            avg += curr;
+            if (-90 < curr && curr < 90) avg += curr;
         }
     }
     if (red_count >= 2) {
@@ -62,11 +62,11 @@ void get_angle() {
         cam_angle = 180;
         green_left = green_right = true;
     }
-    else if (green_left_count >= 3) {
+    else if (green_left_count >= 2) {
         cam_angle = 90;
         green_left = true;
     }
-    else if (green_right_count >= 3) {
+    else if (green_right_count >= 2) {
         cam_angle = -90;
         green_right = true;
     } else {

@@ -236,25 +236,14 @@ void loop()
         move_as_angle(cam_angle);
       } else {
         // Kreuzungslogik
-        if (green_left && green_right) {
-          // Turn by 180 degrees
-          Serial.println("Turn!");
-          digitalWrite(LEDG, HIGH);
-          digitalWrite(LEDB, HIGH);
-          digitalWrite(LEDR, HIGH);
-          stop();
-          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
-          get_angle();
-          break;
-        }
-        else if (green_left) {
+        if (cam_angle == 90) {
           // Turn by 90 degrees left
           digitalWrite(LEDG, HIGH);
           digitalWrite(LEDB, HIGH);
           digitalWrite(LEDR, LOW);
           Serial.println("Left!");
           straight();
-          delay(200);
+          delay(700);
           // Let cam correct the rest
           left(75);
           // Write invalid data to the vals
@@ -262,31 +251,45 @@ void loop()
           get_angle();
           break;
         }
-        else if (green_right) {
+        if (cam_angle == -90) {
           // Turn by 90 degrees right
           digitalWrite(LEDG, LOW);
           digitalWrite(LEDB, HIGH);
           digitalWrite(LEDR, HIGH);
           Serial.println("Right.");
           straight();
-          delay(200);
+          delay(700);
           right(75);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
           get_angle();
           break;
         }
-        else if (is_red) {
+        if (cam_angle == 180) {
+          // Turn by 180 degrees
+          Serial.println("Turn!");
+          digitalWrite(LEDG, HIGH);
+          digitalWrite(LEDB, HIGH);
+          digitalWrite(LEDR, HIGH);
+          straight();
+          delay(700);
+          left(180);
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+          get_angle();
+          break;
+        }
+        if (is_red) {
           digitalWrite(LEDG, LOW);
           digitalWrite(LEDB, LOW);
           digitalWrite(LEDR, HIGH);
           stop();
           bigState = STOP;
         }
-        else if (cam_angle == 360) {
-          Serial.println("No line seen...");
-          // No angle seen
-          no_line_cycle_count++;
-        }
+        // Would never happen bc cam angle is never 360
+        // if (cam_angle == 360) {
+        //   Serial.println("No line seen...");
+        //   // No angle seen
+        //   no_line_cycle_count++;
+        // }
       }
 
       // make sure processor isn't maxed out

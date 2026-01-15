@@ -55,12 +55,12 @@ void move_as_angle(int angle) {
   }
 
   if (angle > 35) {
-    right_factor = cos(angle * PI / 180);
+    right_factor = 2 * cos(angle * PI / 180);
     // TODO find good way to calculate the other factor
     left_factor = -(double)(right_factor / 2);
   }
   else if (angle < -35) {
-    left_factor = cos(angle * PI / 180);
+    left_factor = 2 * cos(angle * PI / 180);
     right_factor = -(double)(left_factor / 2);
   }
 
