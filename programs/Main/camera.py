@@ -46,6 +46,9 @@ show_line_following = True
 
 ## Thresholds
 
+# Tolerance for how much green blobs can "overlap" with vertical line
+tolerance = 0.2
+
 # Threshold which pixel brightness counts as black
 GRAYSCALE_THRESHOLD = [(0, 90)]
 
@@ -63,7 +66,7 @@ width, height = 160, 120
 # Height from which the image will be processed
 cut_height = int(2/3 * height)
 img_center_x, img_center_y = 80, 60
-start_pos_x = 103 # 80
+start_pos_x = 80#103 # 80
 start_pos_y = 80
 
 ## Adjustable ROI-parameters
@@ -275,8 +278,8 @@ while True:
 
         if debug_print:
             print("Calculating angle of line...")
-        # TODO the line slope is not too accurate because of the ROIfication of the image.
-        # Try to fix this pls
+        # the line slope is not too accurate because of the ROIfication of the image.
+        # that's generally fine i guess
         line_angle_rad = calculate_modified_line_slope(mid_center_pos, top_center_pos)
 
         if debug_print: #_important
@@ -294,9 +297,15 @@ while True:
         if top_blob != False and mid_blob != False:
             if show_blob_info:
                 img.draw_line(top_blob.cx(), top_blob.cy(), mid_blob.cx(), mid_blob.cy(), blob_color, 2)
+            """
             line_length = math.sqrt((top_blob.cx() - mid_blob.cx())**2 + (top_blob.cy() - mid_blob.cy())**2)
             vertical_line_array[i] = line_length
+            """
 
+            # experimental:
+            vertical_line_array[i] = top_blob.h() + mid_blob.h()
+
+    """
     if debug_print:
         for i, down_line_length in enumerate(vertical_line_array):
             if down_line_length:
@@ -304,7 +313,7 @@ while True:
             else:
                 print("-", end=", ")
         print("\n")
-
+    """
 
     # kreuzungsdetection:
     # when line splits its a kreuzung
@@ -320,9 +329,9 @@ while True:
 
         vertical_line_pos = 0
         total_length = 0
-        for i, down_line_length in enumerate(vertical_line_array):
-            vertical_line_pos += i * down_line_length
-            total_length += down_line_length
+        for i, total_line_length in enumerate(vertical_line_array):
+            vertical_line_pos += i * total_line_length
+            total_length += total_line_length
         vertical_line_pos /= total_length
 
         """
@@ -384,14 +393,18 @@ while True:
             if blob_array_mid[i - 1] and blob_array_mid[i]:
                 right_line_length_bottom += 1
 
-
         if left_line_length >= 2 and right_line_length >= 2:
             # Kreuzung detected
             for blob in green_blobs:
-            # TODO ensure blobs are followed by black!!!
-                if blob.cx() - roi_width < vertical_line_pos * roi_width:
+                # Fancy idea: calculate x-deviation
+                # rank blobs by x_deviation
+
+
+
+                # TODO this tolerance is pretty important but can lead to bad stuff happening
+                if blob.cx() - tolerance * roi_width < vertical_line_pos * roi_width:
                     blob_left = 1
-                else:
+                if blob.cx() + tolerance * roi_width > vertical_line_pos * roi_width:
                     blob_right = 1
             """
             if blob_left and blob_right:
@@ -403,16 +416,14 @@ while True:
             else:
                 print("Kein grün :(")
             """
-        if blob_array_top[vertical_line_range[0]]:
-            if left_line_length_bottom >= 3:
-                # left-half-Kreuzung detected
+        elif blob_array_top[vertical_line_range[0]] and (left_line_length_bottom >= 3 or right_line_length_bottom >= 3):
+                # Kreuzung detected
                 for blob in green_blobs:
-                    # TODO ensure blobs are followed by black!!!
-                    # TODO TODO TODO
-                    if blob.cx() - roi_width < vertical_line_pos * roi_width:
+                    if blob.cx() - tolerance * roi_width < vertical_line_pos * roi_width:
                         blob_left = 1
-                    else:
+                    if blob.cx() + tolerance * roi_width > vertical_line_pos * roi_width:
                         blob_right = 1
+
                 if debug_print_important:
                     if blob_left and blob_right:
                         print("Turn!")
@@ -424,29 +435,31 @@ while True:
                         print("Kein grün :(")
                 else:
                     print("Keine Kreuzung gefunden.")
-            elif right_line_length_bottom >= 3:
-                # right-half-Kreuzung detected
-                for blob in green_blobs:
-                    # TODO ensure blobs are followed by black!!!
-                    if blob.cx() < vertical_line_pos * roi_width:
-                        blob_left = 1
+                """
+                elif :
+                    # right-half-Kreuzung detected
+                    for blob in green_blobs:
+                        # TODO ensure blobs are followed by black!!!
+                        if blob.cx() < vertical_line_pos * roi_width:
+                            blob_left = 1
+                        else:
+                            blob_right = 1
+                    if debug_print_important:
+                        if blob_left and blob_right:
+                            print("Turn!")
+                        elif blob_left:
+                            print("Left!")
+                        elif blob_right:
+                            print("Right!")
+                        else:
+                            print("Kein grün :(")
                     else:
-                        blob_right = 1
-                if debug_print_important:
-                    if blob_left and blob_right:
-                        print("Turn!")
-                    elif blob_left:
-                        print("Left!")
-                    elif blob_right:
-                        print("Right!")
-                    else:
-                        print("Kein grün :(")
-                else:
-                    print("Keine Kreuzung gefunden.")
+                        print("Keine Kreuzung gefunden.")
+                """
 
     # Communicating with robot
 
-    # For now, only talk if there are actual infos
+    # only talk if there are actual infos
     if weight_sum_top and weight_sum_mid:
         # Send the angle and information about the left and right green spots
         # Remember that the green spots will only get checked if a kreuzung is present!
@@ -457,9 +470,9 @@ while True:
         # We'll "reserve" some of these values to use for the kreuzung turns
         if (blob_left and blob_right):
             angle = 180
-        if blob_left:
+        elif blob_left:
             angle = 90
-        if blob_right:
+        elif blob_right:
             angle = -90
         if red_line_detected:
             angle = 300
