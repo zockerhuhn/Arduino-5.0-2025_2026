@@ -378,7 +378,6 @@ while True:
         if debug_print:
             print("Length of right line:", right_line_length)
 
-        # TODO TODO TODO
         # If a line of blobs is found either left or right and a single blob continues at the top,
         # its also a crossing
 
@@ -394,18 +393,14 @@ while True:
                 right_line_length_bottom += 1
 
         if left_line_length >= 2 and right_line_length >= 2:
-            # Kreuzung detected
+            # Kreuzung on the top detected
             for blob in green_blobs:
-                # Fancy idea: calculate x-deviation
-                # rank blobs by x_deviation
-
-
-
-                # TODO this tolerance is pretty important but can lead to bad stuff happening
-                if blob.cx() - tolerance * roi_width < vertical_line_pos * roi_width:
-                    blob_left = 1
-                if blob.cx() + tolerance * roi_width > vertical_line_pos * roi_width:
-                    blob_right = 1
+                if blob.cy() > top_center_pos[1]:
+                    # TODO this tolerance is pretty important but can lead to bad stuff happening
+                    if blob.cx() - tolerance * roi_width < vertical_line_pos * roi_width:
+                        blob_left = 1
+                    if blob.cx() + tolerance * roi_width > vertical_line_pos * roi_width:
+                        blob_right = 1
             """
             if blob_left and blob_right:
                 print("Turn!")
@@ -417,12 +412,14 @@ while True:
                 print("Kein grün :(")
             """
         elif blob_array_top[vertical_line_range[0]] and (left_line_length_bottom >= 3 or right_line_length_bottom >= 3):
-                # Kreuzung detected
+                # Side-Kreuzung detected
                 for blob in green_blobs:
-                    if blob.cx() - tolerance * roi_width < vertical_line_pos * roi_width:
-                        blob_left = 1
-                    if blob.cx() + tolerance * roi_width > vertical_line_pos * roi_width:
-                        blob_right = 1
+                    print(blob.cy(), mid_center_pos)
+                    if blob.cy() > mid_center_pos[1]:
+                        if blob.cx() - tolerance * roi_width < vertical_line_pos * roi_width:
+                            blob_left = 1
+                        if blob.cx() + tolerance * roi_width > vertical_line_pos * roi_width:
+                            blob_right = 1
 
                 if debug_print_important:
                     if blob_left and blob_right:
