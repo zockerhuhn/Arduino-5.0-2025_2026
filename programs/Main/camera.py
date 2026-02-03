@@ -50,7 +50,7 @@ show_line_following = True
 tolerance = 0.2
 
 # Threshold which pixel brightness counts as black
-GRAYSCALE_THRESHOLD = [(0, 90)]
+GRAYSCALE_THRESHOLD = [(0, 50)] # once at maybe 90 or something, but lower is generally better
 
 # Threshold which RGB values are considered green (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi)
 GREEN_THRESHOLD = [(20, 70, -40, -10, 0, 35)]
@@ -181,7 +181,7 @@ while True:
     blob_right = 0
     red_line_detected = False
     clock.tick()  # Track elapsed milliseconds between snapshots().
-    img = sensor.snapshot().crop(roi=(0, 0, width, cut_height))
+    img = sensor.snapshot()
 
 
 
@@ -198,8 +198,8 @@ while True:
 
     #continue
 
-    # Create green mask ONLY in the lower ROI (TODO if green detection is bad, this may be an error)
-    for blob in img.find_blobs(GREEN_THRESHOLD, roi=(0, int(1/3 * height), width, int(1/3 * height)), pixels_threshold=200, area_threshold=200):
+    # Create green mask, only cutting out a small region near the wheels
+    for blob in img.find_blobs(GREEN_THRESHOLD, roi=(0, 0, width, int(5/6 * height)), pixels_threshold=200, area_threshold=200):
         #original_image.draw_edges(blob.min_corners(), blob_color)
         #original_image.draw_cross(blob.cx(), blob.cy(), blob_color)
         green_blobs.append(blob)
@@ -216,6 +216,8 @@ while True:
 
     #continue
 
+    # Crop the image and convert it to grayscale
+    img.crop(roi=(0, 0, width, cut_height))
     img.to_grayscale().binary(GRAYSCALE_THRESHOLD)
 
     #continue
@@ -303,7 +305,7 @@ while True:
             """
 
             # experimental:
-            vertical_line_array[i] = top_blob.h() + mid_blob.h()
+            vertical_line_array[i] = top_blob.h() * mid_blob.h() * (-1 * abs(2 * i / (num_kreuzung_segments) - 1) + 1)
 
     """
     if debug_print:
@@ -411,14 +413,14 @@ while True:
             else:
                 print("Kein grün :(")
             """
-        elif blob_array_top[vertical_line_range[0]] and (left_line_length_bottom >= 3 or right_line_length_bottom >= 3):
+        elif (blob_array_top[vertical_line_range[0]] or blob_array_top[vertical_line_range[1]]) and (left_line_length_bottom >= 3 or right_line_length_bottom >= 3):
                 # Side-Kreuzung detected
                 for blob in green_blobs:
                     print(blob.cy(), mid_center_pos)
                     if blob.cy() > mid_center_pos[1]:
-                        if blob.cx() - tolerance * roi_width < vertical_line_pos * roi_width:
+                        if blob.cx() - tolerance * (roi_width + left_line_length_bottom * 5) < vertical_line_pos * roi_width:
                             blob_left = 1
-                        if blob.cx() + tolerance * roi_width > vertical_line_pos * roi_width:
+                        if blob.cx() + tolerance * (roi_width + right_line_length_bottom * 5) > vertical_line_pos * roi_width:
                             blob_right = 1
 
                 if debug_print_important:
@@ -432,27 +434,6 @@ while True:
                         print("Kein grün :(")
                 else:
                     print("Keine Kreuzung gefunden.")
-                """
-                elif :
-                    # right-half-Kreuzung detected
-                    for blob in green_blobs:
-                        # TODO ensure blobs are followed by black!!!
-                        if blob.cx() < vertical_line_pos * roi_width:
-                            blob_left = 1
-                        else:
-                            blob_right = 1
-                    if debug_print_important:
-                        if blob_left and blob_right:
-                            print("Turn!")
-                        elif blob_left:
-                            print("Left!")
-                        elif blob_right:
-                            print("Right!")
-                        else:
-                            print("Kein grün :(")
-                    else:
-                        print("Keine Kreuzung gefunden.")
-                """
 
     # Communicating with robot
 
@@ -473,26 +454,37 @@ while True:
             angle = -90
         if red_line_detected:
             angle = 300
-        send_to_arduino(angle)
     else:
+        line_left = 0
+        line_right = 0
         if weight_sum_mid:
-            if (len([b for b in blob_array_mid[:3] if b]) >= 3):
-                # If enough blobs on the left exists, the line is probably approximately horizontal
-                send_to_arduino(89)
-            if (len([b for b in blob_array_mid[4:] if b]) >= 3):
-                # Analogue for the right
-                send_to_arduino(-89)
-
+            line_left = len([b for b in blob_array_mid[:3] if b])
+            line_right = len([b for b in blob_array_mid[4:] if b])
         elif weight_sum_top:
-            if (len([b for b in blob_array_top[:3] if b]) >= 3):
-                # If enough blobs on the left exists, the line is probably approximately horizontal
-                send_to_arduino(89)
-            if (len([b for b in blob_array_top[4:] if b]) >= 3):
-                # Analogue for the right
-                send_to_arduino(-89)
+            line_left = len([b for b in blob_array_top[:3] if b])
+            line_right = len([b for b in blob_array_top[4:] if b])
         else:
             # Angle is considered "invalid" at 360°
-            send_to_arduino(360)
+            angle = 360
+
+        if weight_sum_mid or weight_sum_top:
+            if line_left >= 3 and not line_right >= 3:
+                # If enough blobs on the left exists, the line is probably approximately horizontal
+                angle = 50 # 89
+            elif line_right >= 3 and not line_left >= 3:
+                # Analogue for the right
+                angle = -50
+            elif line_left == line_right:
+                # If all we see is a horizontal line or no line at all, we drive onwards
+                angle = 0
+            elif line_left > line_right and line_left >= 2:
+                angle = 45
+            elif line_right > line_left and line_right >= 2:
+                angle = -45
+            else:
+                # anything unspecified just means driving straight
+                angle = 0
+    send_to_arduino(angle)
 
     if debug_print:
         print("FPS:", clock.fps())  # Note: Your OpenMV Cam runs about half as fast while

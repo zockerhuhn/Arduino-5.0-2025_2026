@@ -54,23 +54,22 @@ void get_angle() {
             if (-90 < curr && curr < 90) avg += curr;
         }
     }
-    if (red_count >= 2) {
+    if (red_count >= (int)(NUM_ANGLE_VALS / 3)) {
         cam_angle = 300;
         is_red = true;
     }
-    else if (turn_count >= 3) {
+    else if (turn_count >= (int)(NUM_ANGLE_VALS / 2)) {
         cam_angle = 180;
         green_left = green_right = true;
     }
-    else if (green_left_count >= 2) {
+    else if (green_left_count >= (int)(NUM_ANGLE_VALS / 2)) {
         cam_angle = 90;
         green_left = true;
     }
-    else if (green_right_count >= 2) {
+    else if (green_right_count >= (int)(NUM_ANGLE_VALS / 2)) {
         cam_angle = -90;
         green_right = true;
     } else {
-      // Leave cam_angle unchanged instead of potentially changing it to a wrong value
       cam_angle = (int)(avg / NUM_ANGLE_VALS);
     }
 }

@@ -13,7 +13,7 @@ int cycles_since_data = 0;
 
 // Data received from OpenMV Cam
 int16_t received_cam_angle;
-const int NUM_ANGLE_VALS = 5;
+const int NUM_ANGLE_VALS = 6;
 int16_t angle_array[NUM_ANGLE_VALS];
 int16_t cam_angle;
 
@@ -29,22 +29,25 @@ RescueBoardMotors motors = RescueBoardMotors();
 #define calibrationPin A6
 
 // TODO tune!!!
-int base_left_speed = 70;
-int base_right_speed = 70;
+int base_left_speed = 85;
+int base_right_speed = 110;
 
 //ABSTANDSSENSOR 1
 const uint16_t LOST_CONNECTION = -1;
 uint16_t last_distance_val = LOST_CONNECTION;
 VL53L0X tofSensor = VL53L0X();
-const uint8_t NEW_TOF_ADDRESS = 0x30;
+VL53L0X tofSensor2 = VL53L0X();
+const uint8_t NEW_TOF_ADDRESS = 0x29;
 
 // hier speichern wir 5 TOF-Sensorwerte ab:
 const int NUM_DISTANCE_VALS = 5;
 int distance_array[NUM_DISTANCE_VALS]; 
 int distance_val;
+int distance_array2[NUM_DISTANCE_VALS]; 
+int distance_val2;
 
-int obstacle_threshold = 80;
-int wallscan_threshold = 20;
+int obstacle_threshold = 95;
+int wallscan_threshold = 80;
 int opfer_wall_threshold = 100;
 
 //KOMPASSSENSOR
@@ -66,6 +69,7 @@ enum DebugMode {
   LOG_NOTHING,
   LOG_COLOUR,
   LOG_LINE,
+  LOG_DISTANCE,
 };
 enum DebugMode debug = LOG_NOTHING;
 

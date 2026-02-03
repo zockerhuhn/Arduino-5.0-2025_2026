@@ -82,34 +82,16 @@ void setup()
   /*
     - Abstandssensor (?)
     - Kamera (?)
+    - Motoren
   */
-  
-  // // ABSTANDSSENSOR-INITIALISIEREN
-  // Serial.println("Initialisierung des 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
-  // tofSensor.setBus(&Wire);
-  // tofSensor.setAddress(NEW_TOF_ADDRESS);
-  // if (!tofSensor.init()) {
-  //     delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
-  //     Serial.println("ToF Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
-  //     while (1);
-  // }
-  // // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
-  // tofSensor.setTimeout(500);
-  // // Reichweiter vergrößern (macht den Sensor ungenauer)
-  // tofSensor.setSignalRateLimit(0.1);
-  // tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
-  // tofSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
-  // // lasse Sensor die ganze Zeit an
-  // tofSensor.startContinuous();
-  // Initialise the default values for the "window", should be in variables but won't work there
-  for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
-  Serial.println("Initialisierung Abstandssensor abgeschlossen");
+
+  distance_setup();
 
   openmv_cam_setup();
 
   motor_setup();
 
-  debug = LOG_NOTHING;
+  debug = LOG_DISTANCE;
   bigState = DRIVING;
 }
 
@@ -126,14 +108,15 @@ void loop()
     cycles_since_data = 0;
     append_to_window(received_cam_angle);
     get_angle();
-    Serial.println("received angle: " + String(received_cam_angle));
-  } 
+    // Serial.println("received angle: " + String(received_cam_angle));
+  }
   else {
     Serial.println("No new data");
     cycles_since_data++;
     // if (cycles_since_data > 35 /*TODO adjust value*/) {
     //   Serial.println("Connection lost?");
     // }
+    // TODO fix this doesn't actually work how I imagine it does
     if (cycles_since_data > 5) stop();
   }
 
@@ -161,7 +144,7 @@ void loop()
         digitalWrite(LEDB, LOW);
 
         // Set distance array to invalid value
-        for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+        for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
 
         // Debugging
         switch (debug) {
@@ -183,6 +166,12 @@ void loop()
               else Serial.println("----- -----");
             }
             break;
+
+          case LOG_DISTANCE:
+            readRawDistance();
+            logDistance();
+            readRawDistance2();
+            logDistance2();
         }
   
         if (!digitalRead(motorPin) && !is_red/*ensure no red is seen*/) {
@@ -221,10 +210,10 @@ void loop()
         break; // Jump prematurely out of the switch-case
       }
 
-      // readDistance();
-      // if (distance_val <= obstacle_threshold) {
-      //   bigState = ABSTAND;
-      // }
+      readDistance();
+      if (distance_val <= obstacle_threshold) {
+        bigState = ABSTAND;
+      }
 
       // Check for valid angle
       if (-90 < cam_angle && cam_angle < 90) {
@@ -243,7 +232,7 @@ void loop()
           digitalWrite(LEDR, LOW);
           Serial.println("Left!");
           straight();
-          delay(700);
+          delay(1200);
           // Let cam correct the rest
           left(75);
           // Write invalid data to the vals
@@ -258,7 +247,7 @@ void loop()
           digitalWrite(LEDR, HIGH);
           Serial.println("Right.");
           straight();
-          delay(700);
+          delay(1200);
           right(75);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
           get_angle();
@@ -270,9 +259,10 @@ void loop()
           digitalWrite(LEDG, HIGH);
           digitalWrite(LEDB, HIGH);
           digitalWrite(LEDR, HIGH);
+          // Not really important to be positioned exactly above crossing, so only driving a bit more forward
           straight();
           delay(700);
-          left(180);
+          left(160);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
           get_angle();
           break;
@@ -296,181 +286,5 @@ void loop()
       delay(10);
       break;
   }
-
-  //     switch (state) {
-  //       case crossing:
-  //         if (left_line_cycle_count > right_line_cycle_count) kreuzung(-1);
-  //         if (right_line_cycle_count > left_line_cycle_count) kreuzung(1);
-  //         else kreuzung(0); // TODO stateify kreuzung
-  //         left_line_cycle_count = 0;
-  //         right_line_cycle_count = 0;
-  //         state = straight_driving;
-  //         break;
-
-  //       case straight_driving:
-  //         calculatedReflection = calculateReflection();
-
-  //         if (calculatedReflection != noLine) {
-  //           no_line_cycle_count = 0;
-  //           if (left_line_cycle_count >= 1) {
-  //             left_line_cycle_count--;
-  //           }
-  //           if (right_line_cycle_count >= 1) {
-  //             right_line_cycle_count--;
-  //           } 
-  //         }
-
-  //         if (calculatedReflection != normalLine) {
-  //           switch (calculatedReflection) {
-  //             case frontalLine:
-  //               state = crossing;
-  //               break;
-  
-  //             case leftLine: // TODO find out how to group cases
-  //               state = turn_left_to_line;
-  //               break;
-  //             case hardLeftLine:
-  //               state = turn_left_to_line;
-  //               break;
-  
-  //             case rightLine:
-  //               state = turn_right_to_line;
-  //               break;
-  //             case hardRightLine:
-  //               state = turn_right_to_line;
-  //               break;
-  
-  //             case sideLeftLine:
-  //               state = left_side;
-  //               break;
-  //             case sideRightLine:
-  //               state = right_side;
-  //               break;
-  
-  //             case noLine:
-  //               no_line_cycle_count++;
-  //               break;
-  //           }
-  //           break; // Exit out from straight driving early
-  //         } else {
-  //           straight(2);
-  //         }
-
-  //         break;
-        
-  //       case turn_left_to_line:
-  //         left_line_cycle_count++;
-  //         left_to_line(1.6);
-  //         break;  
-
-  //       case turn_right_to_line:
-  //         right_line_cycle_count++;
-  //         right_to_line(1.6);
-  //         break;
-
-  //       case left_side:
-  //       // PROBLEM!!!!! Seems to be that not aaaaalways side triggers at t-crossings
-  //         digitalWrite(LED_BUILTIN, HIGH);
-  //         left_line_cycle_count++;
-  //         straight(1.6);
-  //         readReflection();
-  //         while (reflectance_array[5] > reflectionBlackThreshold && reflectance_array[4] > reflectionBlackThreshold) {
-  //           readReflection();
-  //         }
-  //         delay(200);
-  //         left();
-
-  //         // Check for black on the other side
-  //         readReflection();
-  //         logReflection();
-  //         while (reflectance_array[0] < reflectionBlackThreshold - 200 && reflectance_array[1] < reflectionBlackThreshold - 200) /*reduce threshold by 200 because it SHOULD be more sensitive, since only white should be there*/ {
-  //           // Read the data
-  //           readReflection();
-  //           readColor();
-  //           readColor2();
-  //           // log stuff
-  //           logReflection();
-  //           Serial.println(String(red2) + " " + String(green2) + " " + String(blue2) + " " + String(isGreen2()));
-  //           // Check for green right
-  //           if (isGreen()) {
-  //             digitalWrite(LEDG, HIGH);
-  //             right(90, 1.8);
-  //             digitalWrite(LEDG, LOW);
-  //             break;
-  //           }
-  //           if (isGreen2()) {
-  //             digitalWrite(LEDB, HIGH);
-  //             left(90, 1.8);
-  //             digitalWrite(LEDB, LOW);
-  //             break;
-  //           }
-  //           if (digitalRead(motorPin)) {
-  //             bigState = STOP;
-  //             break;
-  //           }
-  //         }
-  //         Serial.println();
-
-  //         digitalWrite(LED_BUILTIN, LOW);
-  //         state = straight_driving;
-  //         break;
-
-  //       case right_side:
-  //         digitalWrite(LED_BUILTIN, HIGH);
-  //         right_line_cycle_count++;
-  //         straight(1.6);
-  //         readReflection(); // not quite straight enough
-  //         while (reflectance_array[0] > reflectionBlackThreshold && reflectance_array[1] > reflectionBlackThreshold) {
-  //           readReflection();
-  //         }
-  //         delay(200);
-  //         right();
-
-  //         // Check for black on the other side
-  //         readReflection();
-  //         logReflection();
-  //         while (reflectance_array[5] < reflectionBlackThreshold - 200 && reflectance_array[4] < reflectionBlackThreshold - 200) {
-  //           // Read the data
-  //           readReflection();
-  //           readColor();
-  //           readColor2();
-  //           // log stuff
-  //           logReflection();
-  //           Serial.println(String(red) + " " + String(green) + " " + String(blue) + " " + String(isGreen()));
-  //           // Check for green
-  //           if (isGreen()) {
-  //             digitalWrite(LEDG, HIGH);
-  //             right(90, 1.8);
-  //             digitalWrite(LEDG, LOW);
-  //             break;
-  //           }
-  //           if (isGreen2()) {
-  //             digitalWrite(LEDB, HIGH);
-  //             left(90, 1.8);
-  //             digitalWrite(LEDB, LOW);
-  //             break;
-  //           }
-  //           if (digitalRead(motorPin)) {
-  //             bigState = STOP;
-  //             break;
-  //           }
-  //         }
-  //         Serial.println();
-
-  //         digitalWrite(LED_BUILTIN, LOW);
-  //         state = straight_driving;
-  //         break;
-  //     }
-
-  //     readColor();
-  //     readColor2();
-  //     if (isRed()) {
-  //       stop();
-  //       bigState = STOP;
-  //     }
-
-  //     delay(1); // don't max out processor
-  //     break;
-  // }
 }
 //gyatt

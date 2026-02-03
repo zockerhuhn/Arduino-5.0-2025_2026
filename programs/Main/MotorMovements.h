@@ -2,6 +2,7 @@
 // #define PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286
 
 #include "Distance.h"
+#include "Camera.h"
 #include <math.h>
 
 void motor_setup() {
@@ -63,8 +64,6 @@ void move_as_angle(int angle) {
     left_factor = 2 * cos(angle * PI / 180);
     right_factor = -(double)(left_factor / 2);
   }
-
-
 
   Serial.println(String(left_factor) + " " + String(right_factor));
   motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));
@@ -148,98 +147,89 @@ void right(int turnBy=0, float speed = 1) //turn right
 
 // TODO check which side is "safe" to drive 
 void abstand_umfahren() {
-//   digitalWrite(LED_BUILTIN, HIGH);
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//     }
+  digitalWrite(LED_BUILTIN, HIGH);
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  // TODO check which direction is better 
 
-//   // Go backwards a bit to put distance between robot and obstacle
-//   straight(-1);
-//   while (distance_val < 90) {
-//     readDistance();
-//     delay(10);
-//   }
-//   stop();
+  // Ignore cam during this phase completely because what if the obstacle is black and confuses cam?
 
-//   // Then, check which direction is better 
+  // right(75);
+  // if (digitalRead(motorPin)) {
+  //   stop();
+  //   bigState = STOP;
+  //   return;
+  // }
 
-
-//   right();
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//   }
-//   delay(2000);
-
-//   straight();
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//   }
-//   delay(4000);
+  // straight();
+  // if (digitalRead(motorPin)) {
+  //   stop();
+  //   bigState = STOP;
+  //   return;
+  // }
+  // delay(1500);
   
 
-//   left();
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//   }
-//   delay(2000);
+  // left(75);
+  // if (digitalRead(motorPin)) {
+  //   stop();
+  //   bigState = STOP;
+  //   return;
+  // }
 
-//   straight();
+  // straight();
 
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//   }
-//   delay(6500);
+  // if (digitalRead(motorPin)) {
+  //   stop();
+  //   bigState = STOP;
+  //   return;
+  // }
+  // delay(2500);
   
 
-//   left();
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//   }
-//   delay(2000);
+  // left(75);
+  // if (digitalRead(motorPin)) {
+  //   stop();
+  //   bigState = STOP;
+  //   return;
+  // }
 
-//   straight();
+  // straight();
 
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//   }
+  // if (digitalRead(motorPin)) {
+  //   stop();
+  //   bigState = STOP;
+  //   return;
+  // }
 
-//   delay(1200);
-//   while ((calculatedReflection = calculateReflection()) == noLine) {
-//     if (digitalRead(motorPin)) {
-//       stop();
-//       bigState = STOP;
-//       return;
-//     }
-//   }
+  // delay(1000);
 
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//   }
-//   delay(1500);
 
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//   }
-//   right_to_line(180);
+  // // Very weird stuff and idk if necessary or good 
+  // has_new_data = openMvCam.loop();
+  // if (has_new_data) {
+  //   append_to_window(received_cam_angle);
+  //   get_angle();
+  //   Serial.println("received angle: " + String(received_cam_angle));
+  // }
+  // while (received_cam_angle != 360) {
+  //   if (digitalRead(motorPin)) {
+  //     stop();
+  //     bigState = STOP;
+  //     return;
+  //   }
+  // }
 
-//   for (int i = 0; i < 5; i++) distance_array[i] = 65535;
-//   digitalWrite(LED_BUILTIN, LOW);
+  // if (digitalRead(motorPin)) {
+  //   stop();
+  //   bigState = STOP;
+  //   return;
+  // }
+  // right(75);
+
+  for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+  digitalWrite(LED_BUILTIN, LOW);
 }
