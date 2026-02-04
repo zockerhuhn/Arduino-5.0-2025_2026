@@ -48,11 +48,11 @@ void move_as_angle(int angle) {
 
   if (angle > 10) {
     right_factor = 1.5 * cos(angle * PI / 180);
-    left_factor = 0;
+    left_factor = cos(angle * PI / 180);
   }
   else if (angle < -10) {
     left_factor = 1.5 * cos(angle * PI / 180);
-    right_factor = 0;
+    right_factor = cos(angle * PI / 180);
   }
 
   if (angle > 35) {
@@ -157,78 +157,77 @@ void abstand_umfahren() {
 
   // Ignore cam during this phase completely because what if the obstacle is black and confuses cam?
 
-  // right(75);
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
+  right(75);
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
 
-  // straight();
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // delay(1500);
+  straight();
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  delay(1500);
   
 
-  // left(75);
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
+  left(75);
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
 
-  // straight();
+  straight();
 
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // delay(2500);
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  delay(3000);
   
 
-  // left(75);
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
+  left(75);
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
 
-  // straight();
+  straight();
 
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
 
-  // delay(1000);
+  delay(1000);
 
+  // Very weird stuff and idk if necessary or good 
+  do {
+    if (openMvCam.loop()) {
+      append_to_window(received_cam_angle);
+      get_angle();
+      // Serial.println("received angle: " + String(received_cam_angle));
+    }
+    if (digitalRead(motorPin)) {
+      stop();
+      bigState = STOP;
+      return;
+    }
+    delay(1);
+  } while (received_cam_angle != 360);
 
-  // // Very weird stuff and idk if necessary or good 
-  // has_new_data = openMvCam.loop();
-  // if (has_new_data) {
-  //   append_to_window(received_cam_angle);
-  //   get_angle();
-  //   Serial.println("received angle: " + String(received_cam_angle));
-  // }
-  // while (received_cam_angle != 360) {
-  //   if (digitalRead(motorPin)) {
-  //     stop();
-  //     bigState = STOP;
-  //     return;
-  //   }
-  // }
-
-  // if (digitalRead(motorPin)) {
-  //   stop();
-  //   bigState = STOP;
-  //   return;
-  // }
-  // right(75);
+  if (digitalRead(motorPin)) {
+    stop();
+    bigState = STOP;
+    return;
+  }
+  right(75);
 
   for (int i = 0; i < 5; i++) distance_array[i] = 65535;
   digitalWrite(LED_BUILTIN, LOW);

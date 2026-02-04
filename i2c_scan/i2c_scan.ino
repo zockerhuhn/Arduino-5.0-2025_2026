@@ -1,4 +1,4 @@
-
+// #include <VL53L0X.h>
 // --------------------------------------
 // i2c_scanner
 //
@@ -30,7 +30,10 @@
  
 #include <Wire.h>
  
- 
+// VL53L0X tofSensor = VL53L0X();
+// VL53L0X tofSensor2 = VL53L0X();
+
+
 void setup()
 {
   Wire.begin();
@@ -38,6 +41,11 @@ void setup()
   Serial.begin(115200);
   while (!Serial);             // Leonardo: wait for serial monitor
   Serial.println("\nI2C Scanner");
+
+  // tofSensor.setBus(&Wire);
+  // tofSensor.setAddress(0x29);
+  // tofSensor2.setBus(&Wire);
+  // tofSensor2.setAddress(0x30);
 }
  
  

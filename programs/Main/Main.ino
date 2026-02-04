@@ -113,11 +113,12 @@ void loop()
   else {
     Serial.println("No new data");
     cycles_since_data++;
-    // if (cycles_since_data > 35 /*TODO adjust value*/) {
-    //   Serial.println("Connection lost?");
-    // }
-    // TODO fix this doesn't actually work how I imagine it does
-    if (cycles_since_data > 5) stop();
+    if (cycles_since_data > 20) {
+      // Connection lost?
+      stop();
+      for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+      cam_angle = 360;
+    }
   }
 
   switch (bigState) {
@@ -170,8 +171,8 @@ void loop()
           case LOG_DISTANCE:
             readRawDistance();
             logDistance();
-            readRawDistance2();
-            logDistance2();
+            // readRawDistance2();
+            // logDistance2();
         }
   
         if (!digitalRead(motorPin) && !is_red/*ensure no red is seen*/) {
@@ -205,7 +206,7 @@ void loop()
       if (digitalRead(motorPin)) {
         bigState = STOP;
       }
-      if (no_line_cycle_count >= 35) {
+      if (no_line_cycle_count >= 350) {
         bigState = OPFER;
         break; // Jump prematurely out of the switch-case
       }
@@ -236,7 +237,7 @@ void loop()
           // Let cam correct the rest
           left(75);
           // Write invalid data to the vals
-          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
           break;
         }
@@ -249,7 +250,7 @@ void loop()
           straight();
           delay(1200);
           right(75);
-          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
           break;
         }
@@ -263,7 +264,7 @@ void loop()
           straight();
           delay(700);
           left(160);
-          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
           break;
         }
@@ -274,12 +275,11 @@ void loop()
           stop();
           bigState = STOP;
         }
-        // Would never happen bc cam angle is never 360
-        // if (cam_angle == 360) {
-        //   Serial.println("No line seen...");
-        //   // No angle seen
-        //   no_line_cycle_count++;
-        // }
+        if (cam_angle == 360) {
+          Serial.println("No line seen...");
+          // No angle seen
+          no_line_cycle_count++;
+        }
       }
 
       // make sure processor isn't maxed out

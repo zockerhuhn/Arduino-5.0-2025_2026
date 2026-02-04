@@ -37,7 +37,6 @@ const uint16_t LOST_CONNECTION = -1;
 uint16_t last_distance_val = LOST_CONNECTION;
 VL53L0X tofSensor = VL53L0X();
 VL53L0X tofSensor2 = VL53L0X();
-const uint8_t NEW_TOF_ADDRESS = 0x29;
 
 // hier speichern wir 5 TOF-Sensorwerte ab:
 const int NUM_DISTANCE_VALS = 5;
@@ -46,7 +45,7 @@ int distance_val;
 int distance_array2[NUM_DISTANCE_VALS]; 
 int distance_val2;
 
-int obstacle_threshold = 95;
+int obstacle_threshold = 130;
 int wallscan_threshold = 80;
 int opfer_wall_threshold = 100;
 

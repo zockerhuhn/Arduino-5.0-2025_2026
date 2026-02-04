@@ -3,8 +3,8 @@
 void distance_setup() {
   // ABSTANDSSENSOR INITIALISIEREN
   Serial.println("Initialisierung des ersten 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
-  tofSensor.setBus(&Wire);
-  tofSensor.setAddress(NEW_TOF_ADDRESS);
+  tofSensor.setBus(&Wire1);
+  tofSensor.setAddress(0x29);
   if (!tofSensor.init()) {
       delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
       Serial.println("ToF 1 Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
@@ -23,26 +23,26 @@ void distance_setup() {
   Serial.println("Initialisierung Abstandssensor 1 abgeschlossen");
 
   
-  // // ABSTANDSSENSOR 2 INITIALISIEREN
-  // Serial.println("Initialisierung des zweiten 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
-  // tofSensor2.setBus(&Wire1);
-  // tofSensor2.setAddress(NEW_TOF_ADDRESS);
-  // if (!tofSensor2.init()) {
-  //     delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
-  //     Serial.println("ToF 2 Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
-  //     while (1);
-  // }
-  // // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
-  // tofSensor2.setTimeout(500);
-  // // Reichweiter vergrößern (macht den Sensor ungenauer)
-  // tofSensor2.setSignalRateLimit(0.1);
-  // tofSensor2.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
-  // tofSensor2.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
-  // // lasse Sensor die ganze Zeit an
-  // tofSensor2.startContinuous();
-  // // Initialise the default values for the "window", should be in variables but won't work there
-  // for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array2[i] = 65535;
-  // Serial.println("Initialisierung Abstandssensor 2 abgeschlossen");
+  // ABSTANDSSENSOR 2 INITIALISIEREN
+  Serial.println("Initialisierung des zweiten 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
+  tofSensor2.setBus(&Wire);
+  tofSensor2.setAddress(0x29);
+  if (!tofSensor2.init()) {
+      // delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
+      Serial.println("ToF 2 Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
+      // while (1);
+  }
+  // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
+  tofSensor2.setTimeout(500);
+  // Reichweiter vergrößern (macht den Sensor ungenauer)
+  tofSensor2.setSignalRateLimit(0.1);
+  tofSensor2.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
+  tofSensor2.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
+  // lasse Sensor die ganze Zeit an
+  tofSensor2.startContinuous();
+  // Initialise the default values for the "window", should be in variables but won't work there
+  for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array2[i] = 65535;
+  Serial.println("Initialisierung Abstandssensor 2 abgeschlossen");
 }
 
 int findAverage(int *array, int size) {
