@@ -65,6 +65,9 @@ void move_as_angle(int angle) {
     right_factor = -(double)(left_factor / 2);
   }
 
+  // TODO change movement a bit because of weight at the back
+  // if (angle >= 45)
+
   Serial.println(String(left_factor) + " " + String(right_factor));
   motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));
 }
@@ -145,7 +148,7 @@ void right(int turnBy=0, float speed = 1) //turn right
 //   motors.setSpeeds((int)(100 * speed), (int)(40 * speed));
 // }
 
-// TODO check which side is "safe" to drive 
+
 void abstand_umfahren() {
   digitalWrite(LED_BUILTIN, HIGH);
   if (digitalRead(motorPin)) {
@@ -153,81 +156,59 @@ void abstand_umfahren() {
     bigState = STOP;
     return;
   }
-  // TODO check which direction is better 
 
-  // Ignore cam during this phase completely because what if the obstacle is black and confuses cam?
+  right(80);
 
-  right(75);
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
+  // right();
+  // if (digitalRead(motorPin)) {
+  //   bigState = STOP;
+  //   return;
+  // }
+  // readWriteDistanceArray2();
+  // int smallest = INT_MAX;
+  // while ((readDistance2() - smallest) < 20) {
+  //   delay(1);
+  //   smallest = min(readDistance2(), smallest);
+  //   // Serial.println(String(smallest) + " " + String(readDistance2()));
+  //   if (digitalRead(motorPin)) {
+  //     bigState = STOP;
+  //     return;
+  //   }
+  // }
 
-  straight();
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  delay(1500);
-  
+  // left(5);
 
-  left(75);
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
+  // stop();
+  // delay(2000);
 
-  straight();
-
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  delay(3000);
-  
-
-  left(75);
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-
-  straight();
-
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-
-  delay(1000);
-
-  // Very weird stuff and idk if necessary or good 
-  do {
+  for (int i = 0; i < NUM_ANGLE_VALS; i++) angle_array[i] = 360;
+  cam_angle = 360;
+  while (cam_angle == 360 || cam_angle < 20) {
+    digitalWrite(LEDR, HIGH);
+    digitalWrite(LEDG, HIGH);
+    digitalWrite(LEDB, HIGH);
     if (openMvCam.loop()) {
       append_to_window(received_cam_angle);
       get_angle();
-      // Serial.println("received angle: " + String(received_cam_angle));
     }
-    if (digitalRead(motorPin)) {
-      stop();
-      bigState = STOP;
-      return;
+    motors.setSpeeds((int)(base_left_speed / 2), (int)(base_right_speed * 2));
+    
+    if (readDistance2() - obstacle_threshold > 35) {
+      motors.setSpeeds((int)(base_left_speed / 2), (int)(base_right_speed * 3));
     }
-    delay(1);
-  } while (received_cam_angle != 360);
+  }
+  digitalWrite(LEDR, LOW);
+  digitalWrite(LEDG, LOW);
+  digitalWrite(LEDB, LOW);
+
+  move_as_angle(cam_angle);
 
   if (digitalRead(motorPin)) {
     stop();
     bigState = STOP;
     return;
   }
-  right(75);
+  // right(75);
 
   for (int i = 0; i < 5; i++) distance_array[i] = 65535;
   digitalWrite(LED_BUILTIN, LOW);

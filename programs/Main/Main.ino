@@ -116,18 +116,18 @@ void loop()
     if (cycles_since_data > 20) {
       // Connection lost?
       stop();
-      for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
-      cam_angle = 360;
+      // Exit out of the function? nahh
+      // for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+      // cam_angle = 360;
     }
   }
 
-  switch (bigState) {
+  if (has_new_data) switch (bigState) {
     case STOP:
       stop();
       // check for red!!!
-      if (is_red) { 
+      if (is_red) {
         digitalWrite(LEDR, HIGH);
-        // TODO implement waiting 8 seconds with Chrono or smthng
         delay(8000);
         digitalWrite(LEDR, LOW);
         for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
@@ -146,6 +146,9 @@ void loop()
 
         // Set distance array to invalid value
         for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
+
+        // Set angle array to zero (because driving straight is usually not too bad)
+        for (int i = 0; i < NUM_ANGLE_VALS; i++) angle_array[i] = 0;
 
         // Debugging
         switch (debug) {
@@ -171,8 +174,8 @@ void loop()
           case LOG_DISTANCE:
             readRawDistance();
             logDistance();
-            // readRawDistance2();
-            // logDistance2();
+            readRawDistance2();
+            logDistance2();
         }
   
         if (!digitalRead(motorPin) && !is_red/*ensure no red is seen*/) {
@@ -233,7 +236,7 @@ void loop()
           digitalWrite(LEDR, LOW);
           Serial.println("Left!");
           straight();
-          delay(1200);
+          delay(1000);
           // Let cam correct the rest
           left(75);
           // Write invalid data to the vals
@@ -248,7 +251,7 @@ void loop()
           digitalWrite(LEDR, HIGH);
           Serial.println("Right.");
           straight();
-          delay(1200);
+          delay(1000);
           right(75);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();

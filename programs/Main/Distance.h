@@ -3,7 +3,7 @@
 void distance_setup() {
   // ABSTANDSSENSOR INITIALISIEREN
   Serial.println("Initialisierung des ersten 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
-  tofSensor.setBus(&Wire1);
+  tofSensor.setBus(&Wire);
   tofSensor.setAddress(0x29);
   if (!tofSensor.init()) {
       delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
@@ -25,12 +25,12 @@ void distance_setup() {
   
   // ABSTANDSSENSOR 2 INITIALISIEREN
   Serial.println("Initialisierung des zweiten 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
-  tofSensor2.setBus(&Wire);
+  tofSensor2.setBus(&Wire1);
   tofSensor2.setAddress(0x29);
   if (!tofSensor2.init()) {
       // delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
       Serial.println("ToF 2 Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
-      // while (1);
+      while (1);
   }
   // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
   tofSensor2.setTimeout(500);
@@ -111,17 +111,22 @@ int readDistance(int num_average = NUM_DISTANCE_VALS) {
   return distance_val;
 }
 
-
 int readDistance2(int num_average = NUM_DISTANCE_VALS) {
   readRawDistance2();
   moveArrBack(distance_array2, num_average);
-  distance_array[4] = distance_val2;
+  distance_array2[4] = distance_val2;
 
   distance_val2 = findAverage(distance_array2, num_average);
+  logDistance2();
   return distance_val2;
 }
 
 int readWriteDistanceArray(int num_average = NUM_DISTANCE_VALS) {
   for (int i = 0; i < num_average; i++) readDistance(num_average);
+  return distance_val;
+}
+
+int readWriteDistanceArray2(int num_average = NUM_DISTANCE_VALS) {
+  for (int i = 0; i < num_average; i++) readDistance2(num_average);
   return distance_val;
 }
