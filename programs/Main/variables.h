@@ -46,8 +46,8 @@ int distance_array2[NUM_DISTANCE_VALS];
 int distance_val2;
 
 int obstacle_threshold = 130;
-int wallscan_threshold = 80;
-int opfer_wall_threshold = 100;
+int opfer_wall_threshold = 150;
+int opfer_void_threshold = 500;
 
 //KOMPASSSENSOR
 #define CMPS12 0x60

@@ -121,8 +121,8 @@ void loop()
       // cam_angle = 360;
     }
   }
-
-  if (has_new_data) switch (bigState) {
+  // if (has_new_data)
+  switch (bigState) {
     case STOP:
       stop();
       // check for red!!!
@@ -266,10 +266,20 @@ void loop()
           // Not really important to be positioned exactly above crossing, so only driving a bit more forward
           straight();
           delay(700);
-          left(160);
+          left(190);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
           break;
+        }
+        if (cam_angle == 391) {
+          left(75);
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+          get_angle();
+        }
+        if (cam_angle == -391) {
+          right(75);
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+          get_angle();
         }
         if (is_red) {
           digitalWrite(LEDG, LOW);

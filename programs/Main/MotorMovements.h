@@ -56,17 +56,25 @@ void move_as_angle(int angle) {
   }
 
   if (angle > 35) {
-    right_factor = 2 * cos(angle * PI / 180);
+    right_factor = 1.5 * cos(angle * PI / 180);
     // TODO find good way to calculate the other factor
-    left_factor = -(double)(right_factor / 2);
+    left_factor = -right_factor;//-(double)(right_factor / 2);
   }
   else if (angle < -35) {
-    left_factor = 2 * cos(angle * PI / 180);
-    right_factor = -(double)(left_factor / 2);
+    left_factor = 1.5 * cos(angle * PI / 180);
+    right_factor = -left_factor;//-(double)(left_factor / 2);
   }
 
   // TODO change movement a bit because of weight at the back
-  // if (angle >= 45)
+  if (angle >= 45) {
+    right_factor = 2 * sin(angle * PI / 180);
+    left_factor = -right_factor;
+  }
+  else if (angle <= -45) {
+    left_factor = 2 * sin(angle * PI / 180);
+    right_factor = -left_factor;
+  }
+
 
   Serial.println(String(left_factor) + " " + String(right_factor));
   motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));

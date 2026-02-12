@@ -41,6 +41,8 @@ void append_to_window(int16_t received_cam_angle) {
 void get_angle() {
     int green_left_count = 0;
     int green_right_count = 0;
+    int left_count = 0;
+    int right_count = 0;
     int turn_count = 0;
     int red_count = 0;
     int invalid_count = 0;
@@ -49,12 +51,14 @@ void get_angle() {
         int16_t curr = angle_array[i];
         green_left_count += (int)(curr == 90);
         green_right_count += (int)(curr == -90);
+        left_count += (int)(curr == 391);
+        right_count += (int)(curr == -391);
         turn_count += (int)(curr == 180);
         red_count += (int)(curr == 300);
         invalid_count += (int)(curr == 360);
         if (-90 < curr && curr < 90) avg += curr;
     }
-    if (red_count >= (int)(NUM_ANGLE_VALS / 3)) {
+    if (red_count >= (int)(NUM_ANGLE_VALS / 2)) {
         cam_angle = 300;
         is_red = true;
     }
@@ -70,6 +74,12 @@ void get_angle() {
         cam_angle = -90;
         green_right = true;
     } 
+    else if (left_count >= (int)(NUM_ANGLE_VALS / 2)) {
+        cam_angle = 391;
+    }
+    else if (right_count >= (int)(NUM_ANGLE_VALS / 2)) {
+        cam_angle = -391;
+    }
     else if (invalid_count >= (int)(0.83333333 * NUM_ANGLE_VALS)) {
         cam_angle = 360;
     }

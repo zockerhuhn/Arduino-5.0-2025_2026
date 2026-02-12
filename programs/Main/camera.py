@@ -22,6 +22,16 @@ def send_to_arduino(val):
     # Send the data to the arduino
     # Angle is saved as an integer dezidegree(?),
     # which means we have a precision of 1/10 for an angle in degrees
+
+    # 360: invalid
+    # 300: red
+    # 90: left green
+    # -90: right green
+    # 180: turn
+    # -90<x<90: angle
+    # 391: turn left immediately
+    # -391: turn right immediately
+
     print(val)
     if send_data:
         result = interface.call("update_cam_data", struct.pack("<h", val))
@@ -55,7 +65,8 @@ GRAYSCALE_THRESHOLD = [(0, 50)] # once at maybe 90 or something, but lower is ge
 # Threshold which RGB values are considered green (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi)
 GREEN_THRESHOLD = [(20, 70, -40, -10, 0, 35)]
 
-RED_THRESHOLD = [(25, 50, 45, 70, 20, 50)]
+RED_THRESHOLD = [(10, 57, 28, 63, 15, 59)]
+# (28, 38, -1, 62, 12, 59)
 
 # Threshold how many pixels a blob must have to be relevant
 pixel_threshold = 80
@@ -183,14 +194,16 @@ while True:
     clock.tick()  # Track elapsed milliseconds between snapshots().
     img = sensor.snapshot()
 
-
+    #continue
 
     # Check for red
-    for blob in img.find_blobs(RED_THRESHOLD, pixels_threshold=200, area_threshold=200):
+    for blob in img.find_blobs(RED_THRESHOLD, roi=(30, 40, 100, 80), pixels_threshold=1000, area_threshold=800):
         # For red it isn't important if the line following gets broken, because it shouldn't run anyway
         img.draw_edges(blob.min_corners(), blob_color)
         img.draw_cross(blob.cx(), blob.cy(), blob_color)
-        img.draw_rectangle(*blob.rect(), color = (255,255,255), fill = True)
+        #img.draw_rectangle(*blob.rect(), color = (255,255,255), fill = True)
+
+        #print(blob.area(), blob.pixels())
 
         # TODO be a bit more careful about declaring red,
         # but seems fine for now
@@ -468,12 +481,12 @@ while True:
             angle = 360
 
         if weight_sum_mid or weight_sum_top:
-            if line_left >= 3 and not line_right >= 3:
+            if line_left >= 4 and not line_right >= 4:
                 # If enough blobs on the left exists, the line is probably approximately horizontal
-                angle = 50 # 89
-            elif line_right >= 3 and not line_left >= 3:
+                angle = 391 # eigentlich 50
+            elif line_right >= 4 and not line_left >= 4:
                 # Analogue for the right
-                angle = -50
+                angle = -391
             elif line_left == line_right:
                 # If all we see is a horizontal line or no line at all, we drive onwards
                 angle = 0
