@@ -67,11 +67,11 @@ void move_as_angle(int angle) {
 
   // TODO change movement a bit because of weight at the back
   if (angle >= 45) {
-    right_factor = 2 * sin(angle * PI / 180);
+    right_factor = 1.5 * abs(sin(angle * PI / 180));
     left_factor = -right_factor;
   }
   else if (angle <= -45) {
-    left_factor = 2 * sin(angle * PI / 180);
+    left_factor = 1.5 * abs(sin(angle * PI / 180));
     right_factor = -left_factor;
   }
 
@@ -130,31 +130,55 @@ void right(int turnBy=0, float speed = 1) //turn right
   }
 }
 
-// void straight_left(float speed = 1) //drive straight but pull left
-// {
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//   }
-//   // Configuration for left
-//   motors.flipLeftMotor(true);
-//   motors.flipRightMotor(true);
-//   motors.setSpeeds((int)(40 * speed), (int)(100 * speed));
-// }
+void straight_left(int turnBy=0, float speed = 1) //turn left
+{
+  // This depends on the compass, which should therefore be strongly reconsidered
+  // But the camera can probably correct the resulting error
+  stop();
+  if (digitalRead(motorPin)) {
+    bigState = STOP;
+    return;
+  }
+  readDirection();
+  int initialDirection = direction;
+  motors.setSpeeds((int)(-0.5 * base_left_speed * speed), (int)(2 * base_right_speed * speed));
+  if (turnBy!=0) {
+    while ((((initialDirection - turnBy) + 360) % 360) != direction) {
+      delay(1);
+      readDirection();
+      if (digitalRead(motorPin)) {
+        stop();
+        bigState = STOP;
+        return;
+      }
+    }
+    stop();
+  }
+}
 
-// void straight_right(float speed = 1) //drive straight but pull right
-// {
-//   if (digitalRead(motorPin)) {
-//     stop();
-//     bigState = STOP;
-//     return;
-//   }
-//   // Configuration for right
-//   motors.flipLeftMotor(false);
-//   motors.flipRightMotor(false);
-//   motors.setSpeeds((int)(100 * speed), (int)(40 * speed));
-// }
+void straight_right(int turnBy=0, float speed = 1) //turn right
+{
+  stop();
+  if (digitalRead(motorPin)) {
+    bigState = STOP;
+    return;
+  }
+  readDirection();
+  int initialDirection = direction;
+  motors.setSpeeds((int)(2 * base_left_speed * speed), (int)(-0.5 * base_right_speed * speed));
+  if (turnBy != 0) {
+    while (((initialDirection + turnBy) % 360) != direction) {
+      delay(1);
+      readDirection();
+      if (digitalRead(motorPin)) {
+        stop();
+        bigState = STOP;
+        return;
+      }
+    }
+    stop();
+  }
+}
 
 
 void abstand_umfahren() {
@@ -165,7 +189,7 @@ void abstand_umfahren() {
     return;
   }
 
-  right(80);
+  straight_right(80);
 
   // right();
   // if (digitalRead(motorPin)) {
@@ -191,10 +215,10 @@ void abstand_umfahren() {
 
   for (int i = 0; i < NUM_ANGLE_VALS; i++) angle_array[i] = 360;
   cam_angle = 360;
+  digitalWrite(LEDR, HIGH);
+  digitalWrite(LEDG, HIGH);
+  digitalWrite(LEDB, HIGH);
   while (cam_angle == 360 || cam_angle < 20) {
-    digitalWrite(LEDR, HIGH);
-    digitalWrite(LEDG, HIGH);
-    digitalWrite(LEDB, HIGH);
     if (openMvCam.loop()) {
       append_to_window(received_cam_angle);
       get_angle();
@@ -202,8 +226,9 @@ void abstand_umfahren() {
     motors.setSpeeds((int)(base_left_speed / 2), (int)(base_right_speed * 2));
     
     if (readDistance2() - obstacle_threshold > 35) {
-      motors.setSpeeds((int)(base_left_speed / 2), (int)(base_right_speed * 3));
+      motors.setSpeeds((int)(base_left_speed / 3), (int)(base_right_speed * 2));
     }
+    delay(1);
   }
   digitalWrite(LEDR, LOW);
   digitalWrite(LEDG, LOW);

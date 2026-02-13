@@ -58,7 +58,7 @@ void get_angle() {
         invalid_count += (int)(curr == 360);
         if (-90 < curr && curr < 90) avg += curr;
     }
-    if (red_count >= (int)(NUM_ANGLE_VALS / 2)) {
+    if (red_count >= (int)(2 * NUM_ANGLE_VALS / 3)) {
         cam_angle = 300;
         is_red = true;
     }
@@ -75,10 +75,10 @@ void get_angle() {
         green_right = true;
     } 
     else if (left_count >= (int)(NUM_ANGLE_VALS / 2)) {
-        cam_angle = 391;
+        cam_angle = 89;//391;
     }
     else if (right_count >= (int)(NUM_ANGLE_VALS / 2)) {
-        cam_angle = -391;
+        cam_angle = -89;//-391;
     }
     else if (invalid_count >= (int)(0.83333333 * NUM_ANGLE_VALS)) {
         cam_angle = 360;

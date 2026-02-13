@@ -29,8 +29,8 @@ RescueBoardMotors motors = RescueBoardMotors();
 #define calibrationPin A6
 
 // TODO tune!!!
-int base_left_speed = 85;
-int base_right_speed = 110;
+int base_left_speed = 125;
+int base_right_speed = 85;
 
 //ABSTANDSSENSOR 1
 const uint16_t LOST_CONNECTION = -1;

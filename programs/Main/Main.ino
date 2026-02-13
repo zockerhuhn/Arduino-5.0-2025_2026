@@ -113,15 +113,15 @@ void loop()
   else {
     Serial.println("No new data");
     cycles_since_data++;
-    if (cycles_since_data > 20) {
-      // Connection lost?
-      stop();
-      // Exit out of the function? nahh
-      // for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
-      // cam_angle = 360;
-    }
+    // if (cycles_since_data > 20) {
+    //   // Connection lost?
+    //   stop();
+    //   // Exit out of the function? nahh
+    //   // for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+    //   // cam_angle = 360;
+    // }
   }
-  // if (has_new_data)
+
   switch (bigState) {
     case STOP:
       stop();
@@ -197,11 +197,7 @@ void loop()
       break;
     
     case ABSTAND:
-      // TODO check which direction is save to go
-      // TODO umfahren accordingly
       abstand_umfahren();
-      // TODO remember to implement that the line may not continue immediately 
-      // behind the obstacle but could be just around the corner or smthng
       bigState = DRIVING;
       break;
 
@@ -217,6 +213,12 @@ void loop()
       readDistance();
       if (distance_val <= obstacle_threshold) {
         bigState = ABSTAND;
+      }
+
+      if (cycles_since_data > NUM_ANGLE_VALS) {
+        // no accurate information in the current data
+        stop();
+        break;
       }
 
       // Check for valid angle
@@ -236,7 +238,7 @@ void loop()
           digitalWrite(LEDR, LOW);
           Serial.println("Left!");
           straight();
-          delay(1000);
+          delay(1100);
           // Let cam correct the rest
           left(75);
           // Write invalid data to the vals
@@ -251,7 +253,7 @@ void loop()
           digitalWrite(LEDR, HIGH);
           Serial.println("Right.");
           straight();
-          delay(1000);
+          delay(1100);
           right(75);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
@@ -271,6 +273,7 @@ void loop()
           get_angle();
           break;
         }
+        // Probably not using these
         if (cam_angle == 391) {
           left(75);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
