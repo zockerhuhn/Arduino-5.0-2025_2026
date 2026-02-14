@@ -66,11 +66,11 @@ void get_angle() {
         cam_angle = 180;
         green_left = green_right = true;
     }
-    else if (green_left_count >= (int)(NUM_ANGLE_VALS / 2)) {
+    else if (green_left_count >= (int)(NUM_ANGLE_VALS / 3)) {
         cam_angle = 90;
         green_left = true;
     }
-    else if (green_right_count >= (int)(NUM_ANGLE_VALS / 2)) {
+    else if (green_right_count >= (int)(NUM_ANGLE_VALS / 3)) {
         cam_angle = -90;
         green_right = true;
     } 

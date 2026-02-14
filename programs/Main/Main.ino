@@ -193,6 +193,9 @@ void loop()
       digitalWrite(LEDB, LOW);
       no_line_cycle_count = 0;
       opfer();
+      digitalWrite(LEDR, LOW);
+      digitalWrite(LEDG, LOW);
+      digitalWrite(LEDB, LOW);
       bigState = DRIVING;
       break;
     
@@ -205,7 +208,7 @@ void loop()
       if (digitalRead(motorPin)) {
         bigState = STOP;
       }
-      if (no_line_cycle_count >= 350) {
+      if (no_line_cycle_count >= 50) {
         bigState = OPFER;
         break; // Jump prematurely out of the switch-case
       }
@@ -220,6 +223,9 @@ void loop()
         stop();
         break;
       }
+
+      if (cam_angle != 360 && no_line_cycle_count < 10) no_line_cycle_count = 0;
+      if (cam_angle != 360 && no_line_cycle_count >= 10) no_line_cycle_count -= 20;
 
       // Check for valid angle
       if (-90 < cam_angle && cam_angle < 90) {
@@ -238,7 +244,7 @@ void loop()
           digitalWrite(LEDR, LOW);
           Serial.println("Left!");
           straight();
-          delay(1100);
+          delay(1300);
           // Let cam correct the rest
           left(75);
           // Write invalid data to the vals
@@ -253,7 +259,7 @@ void loop()
           digitalWrite(LEDR, HIGH);
           Serial.println("Right.");
           straight();
-          delay(1100);
+          delay(1300);
           right(75);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
@@ -267,7 +273,7 @@ void loop()
           digitalWrite(LEDR, HIGH);
           // Not really important to be positioned exactly above crossing, so only driving a bit more forward
           straight();
-          delay(700);
+          delay(1300);
           left(190);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();

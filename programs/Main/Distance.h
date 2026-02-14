@@ -45,7 +45,7 @@ void distance_setup() {
   Serial.println("Initialisierung Abstandssensor 2 abgeschlossen");
 }
 
-int findAverage(int *array, int size) {
+int findAverage(int *array, int size = NUM_DISTANCE_VALS) {
   int avg = 0;
   for (int i = 0; i < size; i++) {
     if (array[i] < 8000 && array[i] > 10) {
@@ -65,7 +65,7 @@ void logDistance2() {
     Serial.println("distance2 value: " + String(distance_val2));
 }
 
-void moveArrBack(int *array, int size) {
+void moveArrBack(int *array, int size = NUM_DISTANCE_VALS) {
   for (int i = 1; i < size; i++) {
     array[i-1] = array[i];
   }
@@ -105,7 +105,7 @@ int readRawDistance2() {
 int readDistance(int num_average = NUM_DISTANCE_VALS) {
   readRawDistance();
   moveArrBack(distance_array, num_average);
-  distance_array[4] = distance_val;
+  distance_array[NUM_DISTANCE_VALS - 1] = distance_val;
 
   distance_val = findAverage(distance_array, num_average);
   return distance_val;
@@ -114,7 +114,7 @@ int readDistance(int num_average = NUM_DISTANCE_VALS) {
 int readDistance2(int num_average = NUM_DISTANCE_VALS) {
   readRawDistance2();
   moveArrBack(distance_array2, num_average);
-  distance_array2[4] = distance_val2;
+  distance_array2[NUM_DISTANCE_VALS - 1] = distance_val2;
 
   distance_val2 = findAverage(distance_array2, num_average);
   logDistance2();

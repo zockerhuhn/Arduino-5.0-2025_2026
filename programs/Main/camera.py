@@ -34,6 +34,7 @@ def send_to_arduino(val):
 
     print(val)
     if send_data:
+        #green_led.on()
         result = interface.call("update_cam_data", struct.pack("<h", val))
         # Check if the arduino answers something valid
         if result is not None:
@@ -426,14 +427,14 @@ while True:
             else:
                 print("Kein grün :(")
             """
-        elif (blob_array_top[vertical_line_range[0]] or blob_array_top[vertical_line_range[1]]) and (left_line_length_bottom >= 3 or right_line_length_bottom >= 3):
+        elif (blob_array_top[vertical_line_range[0]] or blob_array_top[vertical_line_range[1]]) and (left_line_length_bottom >= 2 or right_line_length_bottom >= 2):
                 # Side-Kreuzung detected
                 for blob in green_blobs:
                     print(blob.cy(), mid_center_pos)
                     if blob.cy() > mid_center_pos[1]:
-                        if blob.cx() - tolerance * (roi_width + left_line_length_bottom * 5) < vertical_line_pos * roi_width:
+                        if blob.cx() - tolerance * (roi_width + left_line_length_bottom * 2) < vertical_line_pos * roi_width:
                             blob_left = 1
-                        if blob.cx() + tolerance * (roi_width + right_line_length_bottom * 5) > vertical_line_pos * roi_width:
+                        if blob.cx() + tolerance * (roi_width + right_line_length_bottom * 2) > vertical_line_pos * roi_width:
                             blob_right = 1
 
                 if debug_print_important:

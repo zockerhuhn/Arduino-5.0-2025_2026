@@ -30,7 +30,7 @@ RescueBoardMotors motors = RescueBoardMotors();
 
 // TODO tune!!!
 int base_left_speed = 125;
-int base_right_speed = 85;
+int base_right_speed = 75;
 
 //ABSTANDSSENSOR 1
 const uint16_t LOST_CONNECTION = -1;
@@ -38,7 +38,7 @@ uint16_t last_distance_val = LOST_CONNECTION;
 VL53L0X tofSensor = VL53L0X();
 VL53L0X tofSensor2 = VL53L0X();
 
-// hier speichern wir 5 TOF-Sensorwerte ab:
+// hier speichern wir die TOF-Sensorwerte ab:
 const int NUM_DISTANCE_VALS = 5;
 int distance_array[NUM_DISTANCE_VALS]; 
 int distance_val;
@@ -46,7 +46,7 @@ int distance_array2[NUM_DISTANCE_VALS];
 int distance_val2;
 
 int obstacle_threshold = 130;
-int opfer_wall_threshold = 150;
+int opfer_wall_threshold = 400;
 int opfer_void_threshold = 500;
 
 //KOMPASSSENSOR

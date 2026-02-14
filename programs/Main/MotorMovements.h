@@ -56,22 +56,22 @@ void move_as_angle(int angle) {
   }
 
   if (angle > 35) {
-    right_factor = 1.5 * cos(angle * PI / 180);
+    right_factor = 1.5 * abs(sin(angle * PI / 180));
     // TODO find good way to calculate the other factor
     left_factor = -right_factor;//-(double)(right_factor / 2);
   }
   else if (angle < -35) {
-    left_factor = 1.5 * cos(angle * PI / 180);
+    left_factor = 1.5 * abs(sin(angle * PI / 180));
     right_factor = -left_factor;//-(double)(left_factor / 2);
   }
 
   // TODO change movement a bit because of weight at the back
-  if (angle >= 45) {
-    right_factor = 1.5 * abs(sin(angle * PI / 180));
+  if (angle >= 60) {
+    right_factor = 2.5 * abs(sin(angle * PI / 180));
     left_factor = -right_factor;
   }
-  else if (angle <= -45) {
-    left_factor = 1.5 * abs(sin(angle * PI / 180));
+  else if (angle <= -60) {
+    left_factor = 2 * abs(sin(angle * PI / 180));
     right_factor = -left_factor;
   }
 
@@ -189,7 +189,7 @@ void abstand_umfahren() {
     return;
   }
 
-  straight_right(80);
+  straight_right(70);
 
   // right();
   // if (digitalRead(motorPin)) {
@@ -223,10 +223,10 @@ void abstand_umfahren() {
       append_to_window(received_cam_angle);
       get_angle();
     }
-    motors.setSpeeds((int)(base_left_speed / 2), (int)(base_right_speed * 2));
+    motors.setSpeeds((int)(base_left_speed / 3), (int)(base_right_speed * 2));
     
     if (readDistance2() - obstacle_threshold > 35) {
-      motors.setSpeeds((int)(base_left_speed / 3), (int)(base_right_speed * 2));
+      motors.setSpeeds((int)(base_left_speed / 4), (int)(base_right_speed * 2));
     }
     delay(1);
   }
