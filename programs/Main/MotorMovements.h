@@ -66,68 +66,6 @@ void right_to_line(int angle = 45, double back_factor = 1, double speed = 1) {
 }
 
 
-// Moves the robot according to the angle. 
-// IMPORTANTLY the robot won't move BY the angle, it should move right or left with a specific speed
-// The idea would be that since the image data is "continuous", the angle will be recalculated quickly
-// and the new speed overrides the old one
-void move_as_angle(int angle) {
-  // TODO aaaaaaa is that even a good idea?
-  if (digitalRead(motorPin)) {
-    bigState = STOP;
-    return;
-  }
-  // regardless, the speed should be related to the angle in such a way
-  // that it is maximised at the angle 0 for both sides and be 0 at either extreme for the opposite side and 1 for the adjacent
-  // This is basically the point of trigonometry
-  double left_factor; double right_factor;
-  left_factor = 1;
-  right_factor = 1;
-
-  if (angle > 10) {
-    right_factor = 1.5 * cos(angle * PI / 180);
-    left_factor = cos(angle * PI / 180);
-  }
-  else if (angle < -10) {
-    left_factor = 1.5 * cos(angle * PI / 180);
-    right_factor = cos(angle * PI / 180);
-  }
-
-  if (angle >= 30) {
-    right_factor = 1.5 * abs(sin(angle * PI / 180));
-    // TODO find good way to calculate the other factor
-    left_factor = -right_factor;//-(double)(right_factor / 2);
-  }
-  else if (angle <= -30) {
-    left_factor = 1.5 * abs(sin(angle * PI / 180));
-    right_factor = -left_factor;//-(double)(left_factor / 2);
-  }
-
-  if (angle >= 45) {
-    right_factor = 0;
-    left_factor = -right_factor;
-    left_to_line(angle, 0.5);
-  }
-  else if (angle <= -45) {
-    left_factor = 0;
-    right_factor = -left_factor;
-    right_to_line(angle, 0.5);
-  }
-
-  if (angle >= 60) {
-    straight(-1);
-    delay(300);
-    left_to_line(angle, 2, 2);
-  }
-  else if (angle <= -60) {
-    straight(-1);
-    delay(300);
-    right_to_line(angle, 2, 2);
-  }
-
-  Serial.println(String(left_factor) + " " + String(right_factor));
-  motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));
-}
-
 void left(int turnBy=0, double speed = 1) //turn left
 {
   // This depends on the compass, which should therefore be strongly reconsidered
@@ -177,6 +115,71 @@ void right(int turnBy=0, double speed = 1) //turn right
     stop();
   }
 }
+
+// Moves the robot according to the angle. 
+// IMPORTANTLY the robot won't move BY the angle, it should move right or left with a specific speed
+// The idea would be that since the image data is "continuous", the angle will be recalculated quickly
+// and the new speed overrides the old one
+void move_as_angle(int angle) {
+  // TODO aaaaaaa is that even a good idea?
+  if (digitalRead(motorPin)) {
+    bigState = STOP;
+    return;
+  }
+  // regardless, the speed should be related to the angle in such a way
+  // that it is maximised at the angle 0 for both sides and be 0 at either extreme for the opposite side and 1 for the adjacent
+  // This is basically the point of trigonometry
+  double left_factor; double right_factor;
+  left_factor = 1;
+  right_factor = 1;
+
+  if (angle > 10) {
+    right_factor = 1.5 * cos(angle * PI / 180);
+    left_factor = cos(angle * PI / 180);
+  }
+  else if (angle < -10) {
+    left_factor = 1.5 * cos(angle * PI / 180);
+    right_factor = cos(angle * PI / 180);
+  }
+
+  if (angle >= 30) {
+    right_factor = 1.5 * abs(sin(angle * PI / 180));
+    // TODO find good way to calculate the other factor
+    left_factor = -right_factor;//-(double)(right_factor / 2);
+  }
+  else if (angle <= -30) {
+    left_factor = 1.5 * abs(sin(angle * PI / 180));
+    right_factor = -left_factor;//-(double)(left_factor / 2);
+  }
+
+  if (angle >= 45) {
+    right_factor = 0;
+    left_factor = -right_factor;
+    left_to_line(angle, 0.5);
+  }
+  else if (angle <= -45) {
+    left_factor = 0;
+    right_factor = -left_factor;
+    right_to_line(angle, 0.5);
+  }
+
+  if (angle >= 50) {
+    straight(-1);
+    delay(300);
+    // left(35);
+    left_to_line(angle, 3, 2);
+  }
+  else if (angle <= -50) {
+    straight(-1);
+    delay(300);
+    // right(35);
+    right_to_line(angle, 3, 2);
+  }
+
+  Serial.println(String(left_factor) + " " + String(right_factor));
+  motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));
+}
+
 
 void straight_left(int turnBy=0, double speed = 1) //turn left
 {
@@ -237,6 +240,10 @@ void abstand_umfahren() {
     return;
   }
 
+  readDirection();
+  int old_direction = direction;
+  // Serial.println(String(old_direction));
+
   straight_right(70);
 
   // right();
@@ -266,7 +273,10 @@ void abstand_umfahren() {
   digitalWrite(LEDR, HIGH);
   digitalWrite(LEDG, HIGH);
   digitalWrite(LEDB, HIGH);
-  while (cam_angle == 360 || cam_angle < 20) {
+  readDirection();
+  while (cam_angle == 360 || ((old_direction - direction) + 360) % 360 > 10) {
+    readDirection();
+    // Serial.println(String(direction));
     if (openMvCam.loop()) {
       append_to_window(received_cam_angle);
       get_angle();
@@ -278,11 +288,20 @@ void abstand_umfahren() {
     }
     delay(1);
   }
+
+  delay(1700);
+  right(100);
+  straight(-1);
+  delay(500);
+  right_to_line();
+
+
   digitalWrite(LEDR, LOW);
   digitalWrite(LEDG, LOW);
   digitalWrite(LEDB, LOW);
 
-  move_as_angle(cam_angle);
+  // move_as_angle(cam_angle);
+  
 
   if (digitalRead(motorPin)) {
     stop();

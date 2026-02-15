@@ -94,7 +94,7 @@ void setup()
   debug = LOG_DISTANCE;
   bigState = DRIVING;
 
-  if (digitalRead(motorPin)) while (!(openMvCam.loop())) delay(1);
+  while (!(openMvCam.loop())) delay(1);
 }
 
 void loop()
@@ -246,11 +246,15 @@ void loop()
           digitalWrite(LEDR, LOW);
           Serial.println("Left!");
           straight();
-          delay(1300);
+          delay(1467);
           // Let cam correct the rest
-          left(80);
-          // cam_angle = -89;
-          // right_to_line(cam_angle);
+          left(75);
+          while (!openMvCam.loop()) {
+            delay(1);
+          }
+          append_to_window(received_cam_angle);
+          get_angle();
+          if (cam_angle == 360 || cam_angle <= -20) right_to_line(cam_angle);
           // Write invalid data to the vals
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
@@ -266,10 +270,14 @@ void loop()
           digitalWrite(LEDR, HIGH);
           Serial.println("Right.");
           straight();
-          delay(1300);
-          right(80);
-          // cam_angle = 89;
-          // left_to_line(cam_angle);
+          delay(1467);
+          right(75);
+          while (!openMvCam.loop()) {
+            delay(1);
+          }
+          append_to_window(received_cam_angle);
+          get_angle();
+          if (cam_angle == 360 || cam_angle >= 20) left_to_line(cam_angle);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
           digitalWrite(LEDG, LOW);
