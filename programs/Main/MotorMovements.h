@@ -17,7 +17,7 @@ void stop()
   motors.setSpeeds(0, 0);
 }
 
-void straight(float speed = 1) //drive straight
+void straight(double speed = 1) //drive straight
 {
   if (digitalRead(motorPin)) {
     stop();
@@ -28,6 +28,43 @@ void straight(float speed = 1) //drive straight
   motors.flipRightMotor(false);
   motors.setSpeeds((int)(base_left_speed * speed),(int)(base_right_speed * speed)); //prevent motor drifting
 }
+
+void left_to_line(int angle = 45, double back_factor = 1, double speed = 1) {
+  double right_factor = 3 * abs(sin(angle * PI / 180));
+  double left_factor = -back_factor * right_factor;
+  motors.setSpeeds((int)(base_left_speed * speed * left_factor), (int)(base_right_speed * speed * right_factor));
+  while (cam_angle > 10) {
+    if (openMvCam.loop()) {
+      append_to_window(received_cam_angle);
+      get_angle();
+    }
+    delay(1);
+    if (digitalRead(motorPin)) {
+      bigState = STOP;
+      return;
+    }
+  }
+  stop();
+}
+
+void right_to_line(int angle = 45, double back_factor = 1, double speed = 1) {
+  double left_factor = 2 * abs(sin(angle * PI / 180));
+  double right_factor = -back_factor * left_factor;
+  motors.setSpeeds((int)(base_left_speed * speed * left_factor), (int)(base_right_speed * speed * right_factor));
+  while (cam_angle < -10) {
+    if (openMvCam.loop()) {
+      append_to_window(received_cam_angle);
+      get_angle();
+    }
+    delay(1);
+    if (digitalRead(motorPin)) {
+      bigState = STOP;
+      return;
+    }
+  }
+  stop();
+}
+
 
 // Moves the robot according to the angle. 
 // IMPORTANTLY the robot won't move BY the angle, it should move right or left with a specific speed
@@ -55,32 +92,43 @@ void move_as_angle(int angle) {
     right_factor = cos(angle * PI / 180);
   }
 
-  if (angle > 35) {
+  if (angle >= 30) {
     right_factor = 1.5 * abs(sin(angle * PI / 180));
     // TODO find good way to calculate the other factor
     left_factor = -right_factor;//-(double)(right_factor / 2);
   }
-  else if (angle < -35) {
+  else if (angle <= -30) {
     left_factor = 1.5 * abs(sin(angle * PI / 180));
     right_factor = -left_factor;//-(double)(left_factor / 2);
   }
 
-  // TODO change movement a bit because of weight at the back
-  if (angle >= 60) {
-    right_factor = 2.5 * abs(sin(angle * PI / 180));
+  if (angle >= 45) {
+    right_factor = 0;
     left_factor = -right_factor;
+    left_to_line(angle, 0.5);
   }
-  else if (angle <= -60) {
-    left_factor = 2 * abs(sin(angle * PI / 180));
+  else if (angle <= -45) {
+    left_factor = 0;
     right_factor = -left_factor;
+    right_to_line(angle, 0.5);
   }
 
+  if (angle >= 60) {
+    straight(-1);
+    delay(300);
+    left_to_line(angle, 2, 2);
+  }
+  else if (angle <= -60) {
+    straight(-1);
+    delay(300);
+    right_to_line(angle, 2, 2);
+  }
 
   Serial.println(String(left_factor) + " " + String(right_factor));
   motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));
 }
 
-void left(int turnBy=0, float speed = 1) //turn left
+void left(int turnBy=0, double speed = 1) //turn left
 {
   // This depends on the compass, which should therefore be strongly reconsidered
   // But the camera can probably correct the resulting error
@@ -106,7 +154,7 @@ void left(int turnBy=0, float speed = 1) //turn left
   }
 }
 
-void right(int turnBy=0, float speed = 1) //turn right
+void right(int turnBy=0, double speed = 1) //turn right
 {
   stop();
   if (digitalRead(motorPin)) {
@@ -130,7 +178,7 @@ void right(int turnBy=0, float speed = 1) //turn right
   }
 }
 
-void straight_left(int turnBy=0, float speed = 1) //turn left
+void straight_left(int turnBy=0, double speed = 1) //turn left
 {
   // This depends on the compass, which should therefore be strongly reconsidered
   // But the camera can probably correct the resulting error
@@ -156,7 +204,7 @@ void straight_left(int turnBy=0, float speed = 1) //turn left
   }
 }
 
-void straight_right(int turnBy=0, float speed = 1) //turn right
+void straight_right(int turnBy=0, double speed = 1) //turn right
 {
   stop();
   if (digitalRead(motorPin)) {
@@ -223,10 +271,10 @@ void abstand_umfahren() {
       append_to_window(received_cam_angle);
       get_angle();
     }
-    motors.setSpeeds((int)(base_left_speed / 3), (int)(base_right_speed * 2));
+    motors.setSpeeds((int)(base_left_speed / 2), (int)(base_right_speed * 2));
     
     if (readDistance2() - obstacle_threshold > 35) {
-      motors.setSpeeds((int)(base_left_speed / 4), (int)(base_right_speed * 2));
+      motors.setSpeeds((int)(base_left_speed / 3), (int)(base_right_speed * 2));
     }
     delay(1);
   }

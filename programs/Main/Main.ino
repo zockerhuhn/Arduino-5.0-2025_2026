@@ -93,6 +93,8 @@ void setup()
 
   debug = LOG_DISTANCE;
   bigState = DRIVING;
+
+  if (digitalRead(motorPin)) while (!(openMvCam.loop())) delay(1);
 }
 
 void loop()
@@ -102,8 +104,7 @@ void loop()
   // Occasionally (if new data is sent) updates the receiving data
   has_new_data = openMvCam.loop();
   // straight();
-  digitalWrite(LEDR, (PinStatus)!has_new_data);
-  digitalWrite(LEDG, (PinStatus)has_new_data);
+  digitalWrite(LED_BUILTIN, (PinStatus)has_new_data);
   if (has_new_data) {
     cycles_since_data = 0;
     append_to_window(received_cam_angle);
@@ -231,6 +232,7 @@ void loop()
       if (-90 < cam_angle && cam_angle < 90) {
         Serial.println("drive by angle: " + String(cam_angle));
 
+        digitalWrite(LEDR, LOW);
         digitalWrite(LEDG, LOW);
         digitalWrite(LEDB, LOW);
         // Basically move according to the angle with specific speed
@@ -246,10 +248,15 @@ void loop()
           straight();
           delay(1300);
           // Let cam correct the rest
-          left(75);
+          left(80);
+          // cam_angle = -89;
+          // right_to_line(cam_angle);
           // Write invalid data to the vals
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
+          digitalWrite(LEDG, LOW);
+          digitalWrite(LEDB, LOW);
+          digitalWrite(LEDR, LOW);
           break;
         }
         if (cam_angle == -90) {
@@ -260,9 +267,14 @@ void loop()
           Serial.println("Right.");
           straight();
           delay(1300);
-          right(75);
+          right(80);
+          // cam_angle = 89;
+          // left_to_line(cam_angle);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
+          digitalWrite(LEDG, LOW);
+          digitalWrite(LEDB, LOW);
+          digitalWrite(LEDR, LOW);
           break;
         }
         if (cam_angle == 180) {
@@ -277,6 +289,9 @@ void loop()
           left(190);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
+          digitalWrite(LEDG, LOW);
+          digitalWrite(LEDB, LOW);
+          digitalWrite(LEDR, LOW);
           break;
         }
         // Probably not using these

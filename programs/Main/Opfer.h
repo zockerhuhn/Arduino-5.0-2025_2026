@@ -1,10 +1,25 @@
 
-void straighten_by_wall() {
+void straighten_by_wall(int distance = 0) {
   digitalWrite(LEDR, LOW);
   if (digitalRead(motorPin)) {
     bigState = STOP;
     return;
   }
+
+  if (distance != 0) {
+    // not working
+
+    motors.setSpeeds(base_left_speed, (int)(1.5 * base_right_speed));
+    while (readDistance2() > distance) {
+      delay(1);
+      if (digitalRead(motorPin)) {
+        bigState = STOP;
+        return;
+      }
+    }
+    stop();
+  }
+
   left(30);
   right();
   if (digitalRead(motorPin)) {
@@ -12,6 +27,8 @@ void straighten_by_wall() {
     return;
   }
   readWriteDistanceArray2();
+
+
   int smallest = INT_MAX;
   while ((readDistance2() - smallest) < 5) {
     delay(1);
@@ -22,6 +39,7 @@ void straighten_by_wall() {
     }
   }
   left(5); // compensate for the bit of turning that happened after the smallest was detected
+  
   stop();
   digitalWrite(LEDR, HIGH);
 }
@@ -115,18 +133,18 @@ void opfer() {
     }
   }
 
-  if (distance_val >= opfer_wall_threshold) {
+  right(85);
+  for (int i = 0; i < NUM_DISTANCE_VALS; i++) readDistance2();
+  if (distance_val2 > opfer_wall_threshold2) {
+    left(85);
+    straight();
+    delay((distance_val2 - opfer_wall_threshold2) * 10);
     right(85);
-    for (int i = 0; i < NUM_DISTANCE_VALS; i++) readDistance2();
-    if (distance_val2 >= opfer_wall_threshold / 2) {
-      
-    }
   }
 
   for (int j = 0; j < 4; ++j) {
 
     // TODO make sure that this works with the corners and stuff
-    right(85);
     straight();
     delay(2000);
     // straighten_by_wall();
@@ -166,5 +184,6 @@ void opfer() {
         }
       } 
     }
+    right(85);
   }
 }

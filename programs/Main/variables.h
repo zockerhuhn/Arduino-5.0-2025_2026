@@ -47,6 +47,7 @@ int distance_val2;
 
 int obstacle_threshold = 130;
 int opfer_wall_threshold = 400;
+int opfer_wall_threshold2 = 150;
 int opfer_void_threshold = 500;
 
 //KOMPASSSENSOR
