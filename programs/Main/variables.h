@@ -1,27 +1,26 @@
-//REFLEKTIONSSENSOREN
-int varrechts = 0;
-int varlinks = 0;
-const uint8_t SENSOR_LEISTE_ANZAHL_SENSOREN = 6;
-const uint8_t SENSOR_LEISTE_PINS[] = {D6, D0, D1, D7, D8, D9};
-// hier speichern wir die 6 Reflektionssensorwerte ab:
-uint16_t helligkeiten[SENSOR_LEISTE_ANZAHL_SENSOREN];
-QTRSensors sensorLeiste = QTRSensors();
-String calculatedReflection;
-// hier speichern wir die Farbsensorwerte ab:
-// Roh-Werte (Es gibt auch kalibierte Werte, aber die sind sehr langsam auszulesen):
-uint16_t rot, gruen, blau, helligkeit;
-uint16_t rot2, gruen2, blau2, helligkeit2;
+// CAMERA
 
-uint16_t old_colour[4];
-uint16_t old_colour2[4];
+// Messages between OpenMV Cam and Arduino are limited to 256 bytes
+openmv::rpc_scratch_buffer<256> scratch_buffer;
+// Register a maximum of 8 commands
+openmv::rpc_callback_buffer<8> callback_buffer;
 
-//FARBSENSOREN
-/** Sensor sehr schnell einstellen (ungenauer):
- *  Gain 4x fand ich am besten, aber dann sind die Werte so stabil,
- *  dass die Fehlerdetektion immer ausgelöst hat (siehe unten "helligkeitStatischStoppuhr.hasPassed"). */
-Adafruit_TCS34725 rgbSensor = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_60MS, TCS34725_GAIN_4X);
-Adafruit_TCS34725 rgbSensor2 = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_60MS, TCS34725_GAIN_4X);
+openmv::rpc_hardware_serial1_uart_slave openMvCam(115200);
 
+// Flag tracking if data from the camera is received this loop
+bool has_new_data = false;
+int cycles_since_data = 0;
+
+// Data received from OpenMV Cam
+int16_t received_cam_angle;
+const int NUM_ANGLE_VALS = 6;
+int16_t angle_array[NUM_ANGLE_VALS];
+int16_t cam_angle;
+
+// Kreuzungs-Data
+bool green_left = false;
+bool green_right = false;
+bool is_red = false;
 
 //MOTOREN
 // Dieses Objekt repräsentiert 2 Motor-Kanäle (1..2 Motoren pro Kanal):
@@ -29,30 +28,50 @@ RescueBoardMotors motors = RescueBoardMotors();
 #define motorPin D12
 #define calibrationPin A6
 
-//ABSTANDSSENSOR
-/** optional: Stoppuhr, um zu Verbindungsverluste zu erkennen */
-bool debT = false; // debT = debug timer, machen wir an falls wir Probleme beim Abstandssensor haben und dann sagt der Timer ob überhaupt Werte ankommen
-const uint16_t VERBINDUNG_VERLOREN = 0;
-uint16_t vorheriger_abstand = VERBINDUNG_VERLOREN;
-VL53L0X abstandsSensor = VL53L0X();
-const uint8_t NEUE_ABSTANDSADDRESSE = 0x30;
+// TODO tune!!!
+int base_left_speed = 125;
+int base_right_speed = 75;
 
-enum Modus {
-    /* Werte im Serial Monitor anzeigen. */
-    ABSTANDS_WERTE_LOGGEN,
-    /* Sensor gehen eine Fläche richten (z.B. Monitor) und in weniger als SCHWELLENWERT mm etwas davor halten.  */
-    SCHWELLENWERT_VISUALISIERUNG,
-};
-const int SCHWELLENWERT = 100;
-/** hier einstellen, was das Programm mit den Sensorwerten anfangen soll: */
-enum Modus modus = SCHWELLENWERT_VISUALISIERUNG;
+//ABSTANDSSENSOR 1
+const uint16_t LOST_CONNECTION = -1;
+uint16_t last_distance_val = LOST_CONNECTION;
+VL53L0X tofSensor = VL53L0X();
+VL53L0X tofSensor2 = VL53L0X();
 
-// hier speichern wir 10 TOFsensorwerte ab:
-int abstandsWerte[5] = {65535, 65535, 65535, 65535, 65535}; // , 65535, 65535, 65535, 65535, 65535
-int abstandsWert;
+// hier speichern wir die TOF-Sensorwerte ab:
+const int NUM_DISTANCE_VALS = 5;
+int distance_array[NUM_DISTANCE_VALS]; 
+int distance_val;
+int distance_array2[NUM_DISTANCE_VALS]; 
+int distance_val2;
 
+int obstacle_threshold = 130;
+int opfer_wall_threshold = 400;
+int opfer_wall_threshold2 = 150;
+int opfer_void_threshold = 500;
 
 //KOMPASSSENSOR
 #define CMPS12 0x60
 uint16_t direction;
-uint16_t currentdirection;
+uint16_t current_direction;
+
+// STATE MACHINE
+enum BigState {
+  OPFER,
+  ABSTAND,
+  DRIVING,
+  STOP,
+};
+BigState bigState;
+
+// Debug modes:
+enum DebugMode {
+  LOG_NOTHING,
+  LOG_COLOUR,
+  LOG_LINE,
+  LOG_DISTANCE,
+};
+enum DebugMode debug = LOG_NOTHING;
+
+// Opferlogic
+int no_line_cycle_count = 0;

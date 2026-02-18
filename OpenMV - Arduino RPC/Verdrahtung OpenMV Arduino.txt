@@ -1,0 +1,6 @@
+Arduino		<-> 	OpenMV Cam
+
+5V		rot	VIN
+GND		orange	GND
+RX		grün	TX
+TX		blau	RX

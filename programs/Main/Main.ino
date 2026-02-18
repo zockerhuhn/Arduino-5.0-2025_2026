@@ -5,7 +5,7 @@
  * !!! Immer darauf achten, dass unten in der Statusleiste...
  *     ... das richtige Arduino Board eingestellt ist
  *     ... das richtige "Sketch File" ausgewählt ist (das ändert sich nämlich nicht automatisch)
- *     ... die richtige C/C++ Konfiguration eingestellt ist (sonst gibt es noch mehr "rote swiggels")
+ *     ... die richtige C/C++ Konfiguration eingestellt ist (sonst gibt es noch mehr "rede swiggels")
  *
  * :: Externen RGB Farbsensor auslesen ::
  * :: Serial Plotter ausprobieren ::
@@ -41,9 +41,18 @@
  * an den selben Bus anschließen.
 */
 
-#include "includes.h"     //all libraries
-#include "variables.h"    //all declarations and variables
-#include "Kalibrierung.h" //calibration values for reflectionsensor and colorsensors
+#include "includes.h"     // all libraries
+#include "variables.h"    // all declarations and variables
+#include "Calibration.h" // calibration values for reflection sensors, color sensors and potentially compass sensor
+
+#include "Compass.h" // commands for a compass
+#include "MotorMovements.h"    //predefined motor movements
+#include "Camera.h"        
+#include "Kreuzung.h"      //command for handling crosssections
+#include "Opfer.h"              //Du Opfer
+
+#include "Distance.h"            // Abstand, noch nicht einsortiert zwischen die restlichen includes
+
 
 void setup()
 {
@@ -71,255 +80,256 @@ void setup()
 
   // REIHENFOLGE:
   /*
-   - Abstandssensor
-   - Farbsensoren
+    - Abstandssensor (?)
+    - Kamera (?)
+    - Motoren
   */
-  
-  // ABSTANDSSENSOR-INITIALISIEREN
-  Serial.println("Initialisierung des 1-Kanal ToF kann bis zu 10 Sekunden dauern...");
-  abstandsSensor.setBus(&Wire);
-  abstandsSensor.setAddress(NEUE_ABSTANDSADDRESSE);
-  if (!abstandsSensor.init()) {
-      delay(5000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
-      Serial.println("ToF Verdrahtung prüfen! Roboter aus- und einschalten! Programm Ende.");
-      while (1);
-  }
-  // Einstellung: Fehler, wenn der Sensor länger als 500ms lang nicht reagiert
-  abstandsSensor.setTimeout(500);
-  // Reichweiter vergrößern (macht den Sensor ungenauer)
-  abstandsSensor.setSignalRateLimit(0.1);
-  abstandsSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
-  abstandsSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
-  // lasse Sensor die ganze Zeit an
-  abstandsSensor.startContinuous();
 
-  Serial.println("Initialisierung Abstandssensor abgeschlossen");
+  distance_setup();
 
+  openmv_cam_setup();
 
-  
-  if (!rgbSensor.begin(TCS34725_ADDRESS, &Wire))
-  {
-    digitalWrite(LEDR, HIGH);
-    digitalWrite(LEDG, HIGH);
-    delay(10000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
-    Serial.println("RGB 1 (rechts) Farbsensor Verdrahtung prüfen!");
-    while (!rgbSensor.begin(TCS34725_ADDRESS, &Wire));
-    digitalWrite(LEDR, LOW);
-    digitalWrite(LEDG, LOW);
-  }
-  Serial.println("Initialisierung Farbe 1 abgeschlossen");
-  if (!rgbSensor2.begin(TCS34725_ADDRESS, &Wire1)) // test colorsensor 2
-  {
-    digitalWrite(LEDR, HIGH);
-    digitalWrite(LEDB, HIGH);
-    delay(10000); // damit wir Zeit haben den Serial Monitor zu öffnen nach dem Upload
-    Serial.println("RGB 2 (links) Farbsensor Verdrahtung prüfen!");    
-    while (!rgbSensor2.begin(TCS34725_ADDRESS, &Wire1));
-    digitalWrite(LEDR, LOW);
-    digitalWrite(LEDB, LOW);
-  }
-  Serial.println("Initialisierung Farbe 2 abgeschlossen");
-  sensorLeiste.setTypeRC();
-  sensorLeiste.setSensorPins(SENSOR_LEISTE_PINS, SENSOR_LEISTE_ANZAHL_SENSOREN);
-  Serial.println("Initialisierung Reflektionssensor abgeschlossen");
+  motor_setup();
 
-  motors.initialize();
-  // falls man global die Motor-Drehrichtung ändern möchte:
-  motors.flipLeftMotor(false); // nur notwendig, wenn man true reinschreibt
-  motors.flipRightMotor(true); // nur notwendig, wenn man true reinschreibt
+  debug = LOG_DISTANCE;
+  bigState = DRIVING;
+
+  while (!(openMvCam.loop())) delay(1);
 }
-
-#include "Reflektionsauslese.h" //commands for reading and processing reflectionsensor
-#include "Motorbewegungen.h"    //predefined motor movements
-#include "Farbauslese.h"        //commands for reading and processing colorsensors
-#include "kreuzung.h"      //command for handling crosssections
-#include "Opfer.h"              //Du Opfer
-
-#include "Abstand.h"            // Abstand, noch nicht einsortiert zwischen die restlichen includes
-
-int x = 0;
-int y = 0;
 
 void loop()
 {
-  if (y >= 35)
-  {
-    Serial.println("opfer");
-    opfer();
-    digitalWrite(LEDR, LOW);
-    digitalWrite(LEDG, LOW);
-    digitalWrite(LEDB, LOW);
-    y = 0;
-    straight();
-    delay(3000);
+  // TODO redesign everything for state machines
+
+  // Occasionally (if new data is sent) updates the receiving data
+  has_new_data = openMvCam.loop();
+  // straight();
+  digitalWrite(LED_BUILTIN, (PinStatus)has_new_data);
+  if (has_new_data) {
+    cycles_since_data = 0;
+    append_to_window(received_cam_angle);
+    get_angle();
+    // Serial.println("received angle: " + String(received_cam_angle));
   }
-
-  // Serial.print(digitalRead(calibrationPin));Serial.print("\t");Serial.print(digitalRead(motorPin));;Serial.print("\n");
-
-  if (digitalRead(calibrationPin))
-  {
-    delay(1000);
-    if (digitalRead(calibrationPin)) {
-      stop();
-      for (int i = 0; i < 5; i++)
-      { // 5x blinken (AN/AUS):
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(250);
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(250);
-      }
-      // Calibrating should word by calculating an average from multiple values
-      uint16_t average_r, average_g, average_b, average_c,  average_r2, average_g2, average_b2, average_c2;
-      average_r = average_g = average_b = average_c = average_r2 = average_g2 = average_b2 = average_c2 = 0;
-      int total_cycles = 10;
-      for (int i = 0; i < total_cycles; i++) 
-      {
-        readColor();
-        readColor2();
-
-        average_r += rot;
-        average_g += gruen;
-        average_b += blau;
-        average_c += helligkeit;
-
-        average_r2 += rot2;
-        average_g2 += gruen2;
-        average_b2 += blau2;
-        average_c2 += helligkeit2;
-      }
-      // calculate average values for both sensors
-      average_r /= total_cycles;
-      average_g /= total_cycles;
-      average_b /= total_cycles;
-      average_c /= total_cycles;
-      average_r2 /= total_cycles;
-      average_g2 /= total_cycles;
-      average_b2 /= total_cycles;
-      average_c2 /= total_cycles;
-      
-      // idea: calculate the ratio instead!
-      blueGreenThreshold = average_g - average_b - 200;
-      blueGreenThreshold2 = average_g2 - average_b2 - 200;
-      redGreenThreshold = average_g - average_r - 200;
-      redGreenThreshold2 = average_g2 - average_r2 - 200;
-
-      colorBrightMaxThreshold = max(helligkeit, helligkeit2) + 1500;
-      colorBrightMinThreshold = min(helligkeit, helligkeit2) - 300;
-
-      // 738 886 767 2399
-
-      Serial.println("Values: " + String(average_r) + " " + String(average_g) + " " + String(average_b)+ " " + String(average_r2) + " " + String(average_g2) + " " + String(average_b2) + " " + String(helligkeit)+ " " + String(helligkeit2));
-      Serial.println("Thresholds: " + String(blueGreenThreshold) + " " + String(redGreenThreshold) + " " + String(blueGreenThreshold2) + " " + String(redGreenThreshold2) + " " + String(colorBrightMaxThreshold)+ " " + String(colorBrightMinThreshold));
-
-      // Serial.println("red vals: " + String(rot) + " " + String(gruen) + " " + String(blau) + " " + String(helligkeit) + "\t " + String(rot2) + " " + String(gruen2) + " " + String(blau2) + " " + String(helligkeit2));
-      Serial.println(String(calculateColor()) + " " + String(calculateColor2()));
-      // 5x blinken (AN/AUS):
-      for (int i = 0; i < 5; i++)
-      {
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(250);
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(250);
-      }
-
-      // ABSTANDSWERTE LOGGEN
-      modus = ABSTANDS_WERTE_LOGGEN;
-      readDistance();
-      werteLoggen();
-    }
-  }
-
-   if (digitalRead(motorPin)) {
-    digitalWrite(LED_BUILTIN, LOW);
-    digitalWrite(LEDR, LOW);
-    digitalWrite(LEDG, LOW);
-    digitalWrite(LEDB, LOW);
-
-    // delay(100);
-    // readDistance();
-    // werteLoggen();
-
-    Serial.println(calculateReflection());
-    delay(100);
-
-    // readColor();
-    // readColor2();
-    // Serial.println("red vals: " + String(rot) + " " + String(gruen) + " " + String(blau) + " " + String(helligkeit) + "\t " + String(rot2) + " " + String(gruen2) + " " + String(blau2) + " " + String(helligkeit2)  + "\t" + String(colorBrightMaxThreshold + 800));
-    // for (int i = 0; i < 4; i++) Serial.print(String(old_colour[i]) + " ");
-    // Serial.print("\t");
-    // for (int i = 0; i < 4; i++) Serial.print(String(old_colour2[i]) + " ");
-    // Serial.print("\t");
-    // Serial.print(String(valid_red() && valid_red2()) + " " + String(helligkeit <= colorBrightMaxThreshold + 800 || helligkeit2 <= colorBrightMaxThreshold + 800) + " ");
-    // if ((valid_red() && valid_red2()) && (helligkeit <= colorBrightMaxThreshold + 800 || helligkeit2 <= colorBrightMaxThreshold + 800)) Serial.print("REEEEEEEEED");
-    // Serial.println();
-
-  }
-
   else {
-    is_red();
+    Serial.println("No new data");
+    cycles_since_data++;
+    // if (cycles_since_data > 20) {
+    //   // Connection lost?
+    //   stop();
+    //   // Exit out of the function? nahh
+    //   // for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 360;
+    //   // cam_angle = 360;
+    // }
+  }
 
-    // ABSTANDSSZEUG
-    readDistance(); 
-    werteLoggen();
-    if (abstandsWert <= 80) {
+  switch (bigState) {
+    case STOP:
+      stop();
+      // check for red!!!
+      if (is_red) {
+        digitalWrite(LEDR, HIGH);
+        delay(8000);
+        digitalWrite(LEDR, LOW);
+        for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+        get_angle();
+        bigState = DRIVING;
+        break;
+      }
+      else {
+        delay(100);
+      
+        // Reset LEDs
+        digitalWrite(LED_BUILTIN, LOW);
+        digitalWrite(LEDR, LOW);
+        digitalWrite(LEDG, LOW);
+        digitalWrite(LEDB, LOW);
+
+        // Set distance array to invalid value
+        for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
+
+        // Set angle array to zero (because driving straight is usually not too bad)
+        for (int i = 0; i < NUM_ANGLE_VALS; i++) angle_array[i] = 0;
+
+        // Debugging
+        switch (debug) {
+          case LOG_NOTHING:
+            break;
+
+          case LOG_LINE: 
+            // TODO implement check for cam and look what line may be
+            // Probably not really good or smart
+            Serial.println("Angle:" +  String(cam_angle));
+            break;
+
+          case LOG_COLOUR:
+            if (is_red) Serial.println("reeeeeeeeed"); 
+            else {
+              if (green_left && green_right) Serial.println("green green");
+              else if (green_left) Serial.println("green -----");
+              else if (green_right) Serial.println("----- green");
+              else Serial.println("----- -----");
+            }
+            break;
+
+          case LOG_DISTANCE:
+            readRawDistance();
+            logDistance();
+            readRawDistance2();
+            logDistance2();
+        }
+  
+        if (!digitalRead(motorPin) && !is_red/*ensure no red is seen*/) {
+          bigState = DRIVING;
+        } else if (!digitalRead(motorPin) && is_red) {
+          bigState = STOP;
+        }
+      }
+      break;
+
+    case OPFER:
+      Serial.println("opfer");
+      digitalWrite(LEDR, LOW);
+      digitalWrite(LEDG, LOW);
+      digitalWrite(LEDB, LOW);
+      no_line_cycle_count = 0;
+      opfer();
+      digitalWrite(LEDR, LOW);
+      digitalWrite(LEDG, LOW);
+      digitalWrite(LEDB, LOW);
+      bigState = DRIVING;
+      break;
+    
+    case ABSTAND:
       abstand_umfahren();
-    }
+      bigState = DRIVING;
+      break;
 
-    calculatedReflection = calculateReflection(); // read the reflectionsensor and save the result in a variable to avoid changing values while processing
-    // Serial.println(calculatedReflection);
-    if (calculatedReflection == "frontalLine")    // detected crosssection
-    {
-      kreuzung(true, 0);
-      y = 0;
-    }
-    else if (calculatedReflection == "sideLeftLine")
-    {
-      // kreuzung(false, -1);
-      left_to_line();
-      y = 0;
-    }
-    else if (calculatedReflection == "sideRightLine")
-    {
-      // kreuzung(false, 1);
-      right_to_line();
-      y = 0;
-    }
-    else if (calculatedReflection == "normalLine") // detected normal line
-    {
-      straight(2);
-      y = 0;
-    }
-    else if (calculatedReflection == "leftLine") // detected a slight left line
-    {
-      straight_left();
-      y = 0;
-    }
-    else if (calculatedReflection == "rightLine") // detected a slight right line
-    {
-      straight_right();
-      y = 0;
-    }
-    else if (calculatedReflection == "hardleftLine") // detected a hard left line
-    {
-      left_to_line();
-      y = 0;
-    }
-    else if (calculatedReflection == "hardrightLine") // detected a hard right line
-    {
-      right_to_line();
-      y = 0;
-    }
-    else if (calculatedReflection == "noLine") // no line detected
-    {
-      Serial.print("\n");
-      Serial.print("keine Linie...");
-      straight(2);
-      y++;
-    }
+    case DRIVING:
+      if (digitalRead(motorPin)) {
+        bigState = STOP;
+      }
+      if (no_line_cycle_count >= 50) {
+        bigState = OPFER;
+        break; // Jump prematurely out of the switch-case
+      }
 
+      readDistance();
+      if (distance_val <= obstacle_threshold) {
+        bigState = ABSTAND;
+      }
 
-    delay(10); // don't max out processor
-    x++;
+      if (cycles_since_data > NUM_ANGLE_VALS) {
+        // no accurate information in the current data
+        stop();
+        break;
+      }
+
+      if (cam_angle != 360 && no_line_cycle_count < 10) no_line_cycle_count = 0;
+      if (cam_angle != 360 && no_line_cycle_count >= 10) no_line_cycle_count -= 20;
+
+      // Check for valid angle
+      if (-90 < cam_angle && cam_angle < 90) {
+        Serial.println("drive by angle: " + String(cam_angle));
+
+        digitalWrite(LEDR, LOW);
+        digitalWrite(LEDG, LOW);
+        digitalWrite(LEDB, LOW);
+        // Basically move according to the angle with specific speed
+        move_as_angle(cam_angle);
+      } else {
+        // Kreuzungslogik
+        if (cam_angle == 90) {
+          // Turn by 90 degrees left
+          digitalWrite(LEDG, HIGH);
+          digitalWrite(LEDB, HIGH);
+          digitalWrite(LEDR, LOW);
+          Serial.println("Left!");
+          straight();
+          delay(1467);
+          // Let cam correct the rest
+          left(75);
+          while (!openMvCam.loop()) {
+            delay(1);
+          }
+          append_to_window(received_cam_angle);
+          get_angle();
+          if (cam_angle == 360 || cam_angle <= -20) right_to_line(cam_angle);
+          // Write invalid data to the vals
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+          get_angle();
+          digitalWrite(LEDG, LOW);
+          digitalWrite(LEDB, LOW);
+          digitalWrite(LEDR, LOW);
+          break;
+        }
+        if (cam_angle == -90) {
+          // Turn by 90 degrees right
+          digitalWrite(LEDG, LOW);
+          digitalWrite(LEDB, HIGH);
+          digitalWrite(LEDR, HIGH);
+          Serial.println("Right.");
+          straight();
+          delay(1467);
+          right(75);
+          while (!openMvCam.loop()) {
+            delay(1);
+          }
+          append_to_window(received_cam_angle);
+          get_angle();
+          if (cam_angle == 360 || cam_angle >= 20) left_to_line(cam_angle);
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+          get_angle();
+          digitalWrite(LEDG, LOW);
+          digitalWrite(LEDB, LOW);
+          digitalWrite(LEDR, LOW);
+          break;
+        }
+        if (cam_angle == 180) {
+          // Turn by 180 degrees
+          Serial.println("Turn!");
+          digitalWrite(LEDG, HIGH);
+          digitalWrite(LEDB, HIGH);
+          digitalWrite(LEDR, HIGH);
+          // Not really important to be positioned exactly above crossing, so only driving a bit more forward
+          straight();
+          delay(1300);
+          left(190);
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+          get_angle();
+          digitalWrite(LEDG, LOW);
+          digitalWrite(LEDB, LOW);
+          digitalWrite(LEDR, LOW);
+          break;
+        }
+        // Probably not using these
+        if (cam_angle == 391) {
+          left(75);
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+          get_angle();
+        }
+        if (cam_angle == -391) {
+          right(75);
+          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+          get_angle();
+        }
+        if (is_red) {
+          digitalWrite(LEDG, LOW);
+          digitalWrite(LEDB, LOW);
+          digitalWrite(LEDR, HIGH);
+          stop();
+          bigState = STOP;
+        }
+        if (cam_angle == 360) {
+          Serial.println("No line seen...");
+          // No angle seen
+          no_line_cycle_count++;
+        }
+      }
+
+      // make sure processor isn't maxed out
+      delay(10);
+      break;
   }
 }
 //gyatt
