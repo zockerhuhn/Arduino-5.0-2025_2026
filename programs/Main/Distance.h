@@ -117,7 +117,7 @@ int readDistance2(int num_average = NUM_DISTANCE_VALS) {
   distance_array2[NUM_DISTANCE_VALS - 1] = distance_val2;
 
   distance_val2 = findAverage(distance_array2, num_average);
-  logDistance2();
+  // logDistance2();
   return distance_val2;
 }
 

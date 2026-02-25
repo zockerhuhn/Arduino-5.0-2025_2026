@@ -133,11 +133,11 @@ void move_as_angle(int angle) {
   left_factor = 1;
   right_factor = 1;
 
-  if (angle > 10) {
+  if (angle >= 0) {
     right_factor = 1.5 * cos(angle * PI / 180);
     left_factor = cos(angle * PI / 180);
   }
-  else if (angle < -10) {
+  else if (angle < -0) {
     left_factor = 1.5 * cos(angle * PI / 180);
     right_factor = cos(angle * PI / 180);
   }

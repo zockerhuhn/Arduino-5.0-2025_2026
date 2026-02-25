@@ -16,7 +16,7 @@ blue_led = pyb.LED(3)
 interface = rpc.rpc_uart_master(baudrate=115200)
 
 # Flag controlling if data will be transferred
-send_data = True
+send_data = False
 
 def send_to_arduino(val):
     # Send the data to the arduino
@@ -76,7 +76,7 @@ density_threshold = 0.45
 ## Image constants
 width, height = 160, 120
 # Height from which the image will be processed
-cut_height = int(2/3 * height)
+cut_height = int(2/3 * height) + 1
 img_center_x, img_center_y = 80, 60
 start_pos_x = 80#103 # 80
 start_pos_y = 80
@@ -85,19 +85,20 @@ start_pos_y = 80
 
 num_kreuzung_segments = 8
 roi_width = int(width / num_kreuzung_segments)
+roi_height = int(height / 4)
 
-## ROI at the top of the image
+## 2D map of ROIs
 
-# ROI is arranged in base x, base y, width, height
-top_roi = [
-    (x_level, 0, roi_width, int(1/3 * height)) for x_level in range(0, width, roi_width)
-]
+num_roi_rows = 3
 
-## ROI in the middle
+ROIs = []
 
-mid_roi = [
-    (x_level, int(1/3 * height), roi_width, int(1/3 * height)) for x_level in range(0, width, roi_width)
-]
+for i in range(num_roi_rows):
+    # ROI is arranged in base x, base y, width, height
+    ROIs.append([
+        (x_level, int(i/4 * height), roi_width, int(1/4 * height)) for x_level in range(0, width, roi_width)
+    ])
+
 
 def find_avg_center(roi, blob_array):
     """
@@ -164,8 +165,7 @@ def calculate_modified_line_slope(pos1, pos2) -> int | None:
     return None
 
 # Array that saves the blobs that are found in the specified roi
-blob_array_top = [0] * len(top_roi)
-blob_array_mid = [0] * len(mid_roi)
+blob_arrays = [[0] * len(roi) for roi in ROIs]
 
 # Array saving ...
 vertical_line_array = [0] * num_kreuzung_segments
@@ -194,8 +194,6 @@ while True:
     red_line_detected = False
     clock.tick()  # Track elapsed milliseconds between snapshots().
     img = sensor.snapshot()
-
-    #continue
 
     # Check for red
     for blob in img.find_blobs(RED_THRESHOLD, roi=(30, 40, 100, 80), pixels_threshold=1000, area_threshold=800):
@@ -240,53 +238,24 @@ while True:
         # Draw circle in the center
         img.draw_circle(img_center_x, img_center_y, 5, (50, 50, 50), 1, True)
 
-    if debug_print:
-        print("Finding average center in top ROI")
-    # top ROI
-    blob_array_top = [False] * len(top_roi)
-    top_values = find_avg_center(top_roi, blob_array_top)
-    centroid_sum_x, centroid_sum_y, weight_sum_top = top_values
+    # Find centers for each ROI:
+    blob_arrays = [[False] * len(roi) for roi in ROIs]
+    centroids = [None] * num_roi_rows
+    weight_sums = [0] * num_roi_rows
+    for i, roi in enumerate(ROIs):
+        centroid_sum_x, centroid_sum_y, weight_sum = find_avg_center(roi, blob_arrays[i])
+        weight_sums[i] = weight_sum
+        if weight_sum:
+            if show_line_following:
+                # Draw the average center cross
+                img.draw_cross(centroid_sum_x, centroid_sum_y, angled_line_color, size=10)
 
-    if debug_print:
-        print("Found center in top ROI!")
-
-    if weight_sum_top:
-        # Calculate the slope of that line
-        #top_line_angle = calculate_line_slope((first_blob.cx(), first_blob.cy()), (last_blob.cx(), last_blob.cy()))
-        #if top_line_angle != None:
-        #    if top_line_angle > math.pi / 3 and span >= 6:
-        #        print("Probably kreuzung! (top)")
-
-        if show_line_following:
-            # Draw the average center cross
-            img.draw_cross(centroid_sum_x, centroid_sum_y, angled_line_color, size=10)
-
-        top_center_pos = (centroid_sum_x, centroid_sum_y)
-
-    if debug_print:
-        print("Finding average center in middle ROI")
-    # mid ROI
-    blob_array_mid = [False] * len(mid_roi)
-    mid_values = find_avg_center(mid_roi, blob_array_mid)
-    centroid_sum_x, centroid_sum_y, weight_sum_mid = mid_values
-
-    if debug_print:
-        print("Found center in middle ROI!")
-
-    if weight_sum_mid:
-        #mid_line_angle = calculate_line_slope((first_blob.cx(), first_blob.cy()), (last_blob.cx(), last_blob.cy()))
-        #if mid_line_angle != None:
-        #    if mid_line_angle > math.pi / 3 and span >= 6:
-        #        print("Probably kreuzung! (mid)")
-
-        if show_line_following:
-            img.draw_cross(centroid_sum_x, centroid_sum_y, angled_line_color, size=10)
-
-        mid_center_pos = (centroid_sum_x, centroid_sum_y)
+            centroids[i] = (centroid_sum_x, centroid_sum_y)
 
 
     # Combining knowledge
-    if weight_sum_top and weight_sum_mid:
+    if all(weight_sums):
+        """
         x_pos = int((top_center_pos[0] + mid_center_pos[0])/2)
         y_pos = int((top_center_pos[1] + mid_center_pos[1])/2)
         if show_line_following:
@@ -303,23 +272,26 @@ while True:
                 print("Angle:", math.degrees(line_angle_rad))
             else:
                 print("Line has no length, angle is undefined!")
+        """
+
+        # What should happen? Idk
+        line_angle = 0
+        pass
+
 
     if debug_print:
         print("Finding top-middle connections...")
 
-    vertical_line_array = [0] * len(vertical_line_array)
-    for i, top_blob in enumerate(blob_array_top):
-        mid_blob = blob_array_mid[i]
-        if top_blob != False and mid_blob != False:
-            if show_blob_info:
-                img.draw_line(top_blob.cx(), top_blob.cy(), mid_blob.cx(), mid_blob.cy(), blob_color, 2)
-            """
-            line_length = math.sqrt((top_blob.cx() - mid_blob.cx())**2 + (top_blob.cy() - mid_blob.cy())**2)
-            vertical_line_array[i] = line_length
-            """
-
-            # experimental:
-            vertical_line_array[i] = top_blob.h() * mid_blob.h() * (-1 * abs(2 * i / (num_kreuzung_segments) - 1) + 1)
+    v_connections = [[0] * num_kreuzung_segments] * num_roi_rows
+    for i in range(num_roi_rows - 1):
+        for j, b1 in enumerate(blob_arrays[i]):
+            b2 = blob_arrays[i+1][j]
+            if b1 and b2:
+                #line_length = math.sqrt((top_blob.cx() - mid_blob.cx())**2 + (top_blob.cy() - mid_blob.cy())**2)
+                #vertical_line_array[i] = line_length
+                v_connections[i][j] = b1.h() * b2.h() * (-1 * abs(2 * i / (num_kreuzung_segments) - 1) + 1)
+                if show_blob_info:
+                    img.draw_line(b1.cx(), b1.cy(), b2.cx(), b2.cy(), blob_color, 2)
 
     """
     if debug_print:
@@ -338,7 +310,8 @@ while True:
     # of the vertical lines we just found
 
     # Determine where the vertical line to the kreuzung is
-    if any(vertical_line_array): # Line only exists if down lines are seen
+    # Look at the bottom connections only
+    if any(v_connections[1]): # Line only exists if down lines are seen
 
         if debug_print:
             print("Calculate x-position of the presumably followed line (vertical)")
@@ -349,17 +322,6 @@ while True:
             vertical_line_pos += i * total_line_length
             total_length += total_line_length
         vertical_line_pos /= total_length
-
-        """
-        first_line_pos = None
-        last_line_pos = None
-        for i, down_line_length in enumerate(vertical_line_array):
-            if down_line_length:
-                if not first_line_pos:
-                    first_line_pos = i
-                last_line_pos = i
-        vertical_line_pos = (first_line_pos + last_line_pos) / 2
-        """
 
         if debug_print:
             print("Calculated vertical line x-position:", vertical_line_pos)
@@ -379,35 +341,30 @@ while True:
         # Find split from the line
 
         # First find if a line exists left of the range
-        left_line_length = 0
-        for i in range(vertical_line_range[0], 0, -1):
-            if blob_array_top[i] and blob_array_top[i-1]:
-                left_line_length += 1
-        if debug_print:
-            print("Length of left line:", left_line_length)
+        line_lengths = []
+        for blob_array in blob_arrays[1:]:
+            left_line_length = 0
+            for i in range(vertical_line_range[0], 0, -1):
+                if blob_array[i] and blob_array[i-1]:
+                    left_line_length += 1
+            if debug_print:
+                print("Length of left line:", left_line_length)
 
-        # Then find if a line exists right of the range
-        right_line_length = 0
-        for i in range(vertical_line_range[1] + 1, num_kreuzung_segments):
-            if blob_array_top[i - 1] and blob_array_top[i]:
-                right_line_length += 1
-        if debug_print:
-            print("Length of right line:", right_line_length)
+            # Then find if a line exists right of the range
+            right_line_length = 0
+            for i in range(vertical_line_range[1] + 1, num_kreuzung_segments):
+                if blob_array[i] and blob_array[i-1]:
+                    right_line_length += 1
+            if debug_print:
+                print("Length of right line:", right_line_length)
+
+            line_lengths.append((left_line_length, right_line_length))
 
         # If a line of blobs is found either left or right and a single blob continues at the top,
         # its also a crossing
 
-        # Find if a line exists left of the range at the bottom
-        left_line_length_bottom = 0
-        for i in range(vertical_line_range[0], 0, -1):
-            if blob_array_mid[i] and blob_array_mid[i-1]:
-                left_line_length_bottom += 1
-        # Then find if a line exists right of the range at the bottom
-        right_line_length_bottom = 0
-        for i in range(vertical_line_range[1] + 1, num_kreuzung_segments):
-            if blob_array_mid[i - 1] and blob_array_mid[i]:
-                right_line_length_bottom += 1
-
+        # TODO adequate kreuzungsdetection
+        """
         if left_line_length >= 2 and right_line_length >= 2:
             # Kreuzung on the top detected
             for blob in green_blobs:
@@ -417,45 +374,24 @@ while True:
                         blob_left = 1
                     if blob.cx() + tolerance * roi_width > vertical_line_pos * roi_width:
                         blob_right = 1
-            """
-            if blob_left and blob_right:
-                print("Turn!")
-            elif blob_left:
-                print("Left!")
-            elif blob_right:
-                print("Right!")
-            else:
-                print("Kein grün :(")
-            """
-        elif (blob_array_top[vertical_line_range[0]] or blob_array_top[vertical_line_range[1]]) and (left_line_length_bottom >= 2 or right_line_length_bottom >= 2):
+        elif (blob_array_top[vertical_line_range[0]] or blob_array_top[vertical_line_range[1]]) and (left_line_length_bottom >= 3 or right_line_length_bottom >= 3):
                 # Side-Kreuzung detected
                 for blob in green_blobs:
                     print(blob.cy(), mid_center_pos)
                     if blob.cy() > mid_center_pos[1]:
-                        if blob.cx() - tolerance * (roi_width + left_line_length_bottom * 2) < vertical_line_pos * roi_width:
+                        if (blob.cx() - tolerance * (roi_width + left_line_length_bottom * 3) < vertical_line_pos * roi_width) and left_line_length_bottom >= 3:
                             blob_left = 1
-                        if blob.cx() + tolerance * (roi_width + right_line_length_bottom * 2) > vertical_line_pos * roi_width:
+                        if (blob.cx() + tolerance * (roi_width + right_line_length_bottom * 3) > vertical_line_pos * roi_width) and right_line_length_bottom >= 3:
                             blob_right = 1
-
-                if debug_print_important:
-                    if blob_left and blob_right:
-                        print("Turn!")
-                    elif blob_left:
-                        print("Left!")
-                    elif blob_right:
-                        print("Right!")
-                    else:
-                        print("Kein grün :(")
-                else:
-                    print("Keine Kreuzung gefunden.")
-
+        """
     # Communicating with robot
 
-    # only talk if there are actual infos
-    if weight_sum_top and weight_sum_mid:
+    angle = 360
+    # only talk if there are actual infos (tho maybe not only with ALL sums)
+    if all(weight_sums):
         # Send the angle and information about the left and right green spots
         # Remember that the green spots will only get checked if a kreuzung is present!
-        angle = int(math.degrees(line_angle_rad))
+        angle = int(line_angle)
 
         # angle variable ranges from -90 to 90 (tho never actually the edges bc of how we calculate angles),
         # so any other values are invalid
@@ -471,6 +407,7 @@ while True:
     else:
         line_left = 0
         line_right = 0
+        """
         if weight_sum_mid:
             line_left = len([b for b in blob_array_mid[:3] if b])
             line_right = len([b for b in blob_array_mid[4:] if b])
@@ -498,6 +435,7 @@ while True:
             else:
                 # anything unspecified just means driving straight
                 angle = 0
+        """
     send_to_arduino(angle)
 
     if debug_print:

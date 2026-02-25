@@ -133,23 +133,21 @@ void loop()
         digitalWrite(LEDR, LOW);
         for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
         get_angle();
+        
+        // Set distance array to invalid value (67) 
+        for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
+
         bigState = DRIVING;
         break;
       }
       else {
         delay(100);
-      
+  
         // Reset LEDs
         digitalWrite(LED_BUILTIN, LOW);
         digitalWrite(LEDR, LOW);
         digitalWrite(LEDG, LOW);
         digitalWrite(LEDB, LOW);
-
-        // Set distance array to invalid value
-        for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
-
-        // Set angle array to zero (because driving straight is usually not too bad)
-        for (int i = 0; i < NUM_ANGLE_VALS; i++) angle_array[i] = 0;
 
         // Debugging
         switch (debug) {
@@ -173,13 +171,21 @@ void loop()
             break;
 
           case LOG_DISTANCE:
-            readRawDistance();
+            readDistance();
             logDistance();
-            readRawDistance2();
-            logDistance2();
+            // readDistance2();
+            // logDistance2();
         }
-  
+
         if (!digitalRead(motorPin) && !is_red/*ensure no red is seen*/) {
+          // Reset all stuff
+
+          // Set distance array to invalid value
+          for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
+
+          // Set angle array to zero (because driving straight is usually not too bad)
+          for (int i = 0; i < NUM_ANGLE_VALS; i++) angle_array[i] = 0;
+    
           bigState = DRIVING;
         } else if (!digitalRead(motorPin) && is_red) {
           bigState = STOP;
