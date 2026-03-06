@@ -12,7 +12,15 @@ bool has_new_data = false;
 int cycles_since_data = 0;
 
 // Data received from OpenMV Cam
-int16_t received_cam_angle;
+struct {
+  int16_t angle1;
+  int16_t angle2;
+  int16_t angle3;
+  int16_t main_angle;
+  int16_t received_cam_angle;
+  int16_t dist_to_center;
+} received_cam_data;
+
 const int NUM_ANGLE_VALS = 6;
 int16_t angle_array[NUM_ANGLE_VALS];
 int16_t cam_angle;

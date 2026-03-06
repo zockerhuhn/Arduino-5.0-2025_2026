@@ -18,10 +18,9 @@ interface = rpc.rpc_uart_master(baudrate=115200)
 # Flag controlling if data will be transferred
 send_data = False
 
-def send_to_arduino(val):
+def send_to_arduino(*vals):
     # Send the data to the arduino
-    # Angle is saved as an integer dezidegree(?),
-    # which means we have a precision of 1/10 for an angle in degrees
+    # an angle is saved as an integer degree
 
     # 360: invalid
     # 300: red
@@ -32,10 +31,10 @@ def send_to_arduino(val):
     # 391: turn left immediately
     # -391: turn right immediately
 
-    print(val)
+    print(vals)
     if send_data:
         #green_led.on()
-        result = interface.call("update_cam_data", struct.pack("<h", val))
+        result = interface.call("update_cam_data", struct.pack("<h", *vals))
         # Check if the arduino answers something valid
         if result is not None:
             #red_led.off()
@@ -251,7 +250,7 @@ while True:
                 num_blobs += 1
 
     # Find the vertical connections between roi rows
-    v_connections = [[0] * num_kreuzung_segments] * num_roi_rows
+    v_connections = [[False] * num_kreuzung_segments] * (num_roi_rows - 1)
     for i in range(num_roi_rows - 1):
         for j, b1 in enumerate(blob_arrays[i]):
             b2 = blob_arrays[i+1][j]
@@ -259,11 +258,14 @@ while True:
                 #line_length = math.sqrt((top_blob.cx() - mid_blob.cx())**2 + (top_blob.cy() - mid_blob.cy())**2)
                 #vertical_line_array[i] = line_length
 
-                v_connections[i][j] = (b1.h() * b2.h())**2 * (-1 * abs(2 * i / (num_kreuzung_segments) - 1) + 1)
-                #print(v_connections[i][j])
+                v_connections[i][j] = (b1.h() * b2.h())**2 * (-1 * abs(2 * i / (num_kreuzung_segments) - 1) + 1) + 1
+                #print(v_connections[i][j], end=" ")
+
                 if show_blob_info:
                     img.draw_line(b1.cx(), b1.cy(), b2.cx(), b2.cy(), blob_color, 2)
-
+            """else:
+                print("None", end=" ")
+        print("")"""
     # Find the vertical line that probably shows where the robot should be
 
     if any(v_connections[1]):
@@ -281,108 +283,114 @@ while True:
         if debug_print:
             print("Calculated vertical line x-position:", vline_pos)
 
-        vline_range = (math.floor(vline_pos), math.ceil(vline_pos))
+        vline_range = (math.floor(vline_pos - 0.5), math.ceil(vline_pos - 0.5))
 
         if debug_print:
             print(vline_range)
 
         if show_blob_info:
             img.draw_line(int(vline_pos * width / num_kreuzung_segments), cut_height, int(vline_pos * width / num_kreuzung_segments), cut_height - 2 * roi_height, color = blob_color, thickness = 3)
-
+    else:
+        vline_range = None
 
     # Try to calculate centroids from only connected blobs, but if there are not enough, take all blobs
     centroids = [None] * num_roi_rows
-
-    # Find blob nearest to vline
-    next_layer_blob_idx = None
-    for i in range(num_kreuzung_segments):
-        if vline_range[0] + i < num_kreuzung_segments:
-            if blob_arrays[num_roi_rows - 1][vline_range[0] + i]:
-                next_layer_blob_idx = blob_arrays[num_roi_rows - 1][vline_range[0] + i]
-                break
-        elif vline_range[0] - i >= 0:
-            if blob_arrays[num_roi_rows - 1][vline_range[0] - i]:
-                next_layer_blob_idx = blob_arrays[num_roi_rows - 1][vline_range[0] - i]
-                break
-
     total_counted_blobs = 0
-    if next_layer_blob_idx:
-        # Go through the blobs of each row and compute the centroid
-        for row_idx, blob_array in enumerate(blob_arrays):
-            if not next_layer_blob_idx:
-                break
-            curr_blob_idx = next_layer_blob_idx
-            next_layer_blob_idx = None
-            # Collect all connected blob indices of this row in a set
-            relevant_blob_idxs_per_row = set(curr_blob_idx)
-            for i in range(num_kreuzung_segments):
-                if not next_layer_blob_idx and v_connections[row_idx][curr_blob_idx + i]:
-                    next_layer_blob_idx = curr_blob_idx + i
-
-                if blob_array[curr_blob_idx + i]:
-                    relevant_blob_idxs_per_row.add(curr_blob_idx + i)
-                else:
+    if any(v_connections[1]):
+        # Find blob nearest to vline
+        next_layer_blob_idxs = set()
+        for i in range(num_kreuzung_segments):
+            if vline_range[0] + i < num_kreuzung_segments and vline_range[0] + i >= 0:
+                if blob_arrays[num_roi_rows - 1][vline_range[0] + i]:
+                    next_layer_blob_idxs.add(vline_range[0] + i)
                     break
-            for i in range(-1, -num_kreuzung_segments, -1):
-                if not next_layer_blob_idx and v_connections[row_idx][curr_blob_idx + i]:
-                    next_layer_blob_idx = curr_blob_idx + i
-                if (blob_array[curr_blob_idx + i]):
-                    relevant_blob_idxs_per_row.add(curr_blob_idx + i)
-                else:
+            elif vline_range[0] - i >= 0 and vline_range[0] - i < num_kreuzung_segments:
+                if blob_arrays[num_roi_rows - 1][vline_range[0] - i]:
+                    next_layer_blob_idxs.add(vline_range[0] - i)
                     break
 
-            total_counted_blobs += len(relevant_blob_idxs_per_row)
-            # Compute centroids
-            weight_sum = 0
-            centroid_sum_x = 0
-            centroid_sum_y = 0
-            for idx in relevant_blob_idxs_per_row:
-                blob = blob_array[idx]
-                weight_sum += blob.pixels()
-                centroid_sum_x += blob.pixels() * blob.cx()
-                centroid_sum_y += blob.pixels() * blob.cy()
-            if weight_sum != 0:
-                centroid_sum_x = int(centroid_sum_x/weight_sum)
-                centroid_sum_y = int(centroid_sum_y/weight_sum)
-                centroids[row_idx] = (centroid_sum_x, centroid_sum_y)
+        if len(next_layer_blob_idxs):
+            # Go through the blobs of each row and compute the centroid
+            for row_idx_1, blob_array in enumerate(reversed(blob_arrays)):
+                row_idx = num_roi_rows - row_idx_1 - 1
+                #print(row_idx, next_layer_blob_idxs)
+                if len(next_layer_blob_idxs) == 0:
+                    break
+                curr_blob_idx = next_layer_blob_idxs.pop()
+                # Collect all connected blob indices of this row in a set
+                relevant_blob_idxs_per_row = set()
+                for elem in next_layer_blob_idxs:
+                    relevant_blob_idxs_per_row.add(elem)
+                next_layer_blob_idxs.clear()
+                for i in range(num_kreuzung_segments - curr_blob_idx):
+                    if row_idx != 0 and v_connections[row_idx - 1][curr_blob_idx + i] != False:
+                        next_layer_blob_idxs.add(curr_blob_idx + i)
+                        #print("next: ", next_layer_blob_idxs)
+                    if blob_array[curr_blob_idx + i]:
+                        relevant_blob_idxs_per_row.add(curr_blob_idx + i)
+                    else:
+                        break
+                for i in range(curr_blob_idx + 1):
+                    if row_idx != 0 and v_connections[row_idx - 1][curr_blob_idx - i] != False:
+                        next_layer_blob_idxs.add(curr_blob_idx - i)
+                        #print("next: ", next_layer_blob_idxs)
+                    if (blob_array[curr_blob_idx - i]):
+                        relevant_blob_idxs_per_row.add(curr_blob_idx - i)
+                    else:
+                        break
+                #print(relevant_blob_idxs_per_row)
+                total_counted_blobs += len(relevant_blob_idxs_per_row)
+                # Compute centroids
+                weight_sum = 0
+                centroid_sum_x = 0
+                centroid_sum_y = 0
+                for idx in relevant_blob_idxs_per_row:
+                    blob = blob_array[idx]
+                    if blob:
+                        weight_sum += blob.pixels()
+                        centroid_sum_x += blob.pixels() * blob.cx()
+                        centroid_sum_y += blob.pixels() * blob.cy()
+                if weight_sum != 0:
+                    centroid_sum_x = int(centroid_sum_x/weight_sum)
+                    centroid_sum_y = int(centroid_sum_y/weight_sum)
+                    centroids[row_idx] = (centroid_sum_x, centroid_sum_y)
+
+
 
     # If not that many blobs were counted
-    if total_counted_blobs / num_blobs < 0.4:
+    if num_blobs == 0 or total_counted_blobs / num_blobs < 0.4:
         # Find centers for each ROI-row by simply summing everything:
         for i, roi in enumerate(ROIs):
             centroid_sum_x, centroid_sum_y, weight_sum = find_avg_center(roi, blob_arrays[i])
             if weight_sum:
-                if show_line_following:
-                    # Draw the average center cross
-                    img.draw_cross(centroid_sum_x, centroid_sum_y, angled_line_color, size=10)
-
                 centroids[i] = (centroid_sum_x, centroid_sum_y)
 
+    for centroid in centroids:
+        #print("centroid: ", centroid)
+        if show_line_following and centroid != None:
+            # Draw the average center cross
+            img.draw_cross(*centroid, angled_line_color, size=10)
 
+    angles = []
     # Combining knowledge
     if all(centroids):
-        """
-        x_pos = int((top_center_pos[0] + mid_center_pos[0])/2)
-        y_pos = int((top_center_pos[1] + mid_center_pos[1])/2)
-        if show_line_following:
-            img.draw_line(x_pos, y_pos, start_pos_x, start_pos_y, color=angled_line_color, thickness=2)
-
-        if debug_print:
-            print("Calculating angle of line...")
-        # the line slope is not too accurate because of the ROIfication of the image.
-        # that's generally fine i guess
-        line_angle_rad = calculate_modified_line_slope(mid_center_pos, top_center_pos)
-
-        if debug_print: #_important
-            if line_angle_rad != None:
-                print("Angle:", math.degrees(line_angle_rad))
+        centroids.append((start_pos_x, start_pos_y))
+        for i in range(len(centroids) - 2, -1, -1):
+            if show_blob_info:
+                img.draw_line(*centroids[i], *centroids[i+1], color=angled_line_color)
+            angles.append(int(calculate_line_slope(centroids[i], centroids[i+1])))
+        centroids.remove((start_pos_x, start_pos_y))
+    else:
+        centroids.append((start_pos_x, start_pos_y))
+        for i in range(len(centroids) - 2, -1, -1):
+            if centroids[i] and centroids[i+1]:
+                if show_blob_info:
+                    img.draw_line(*centroids[i], *centroids[i+1], color=angled_line_color)
+                angles.append(int(calculate_line_slope(centroids[i], centroids[i+1])))
             else:
-                print("Line has no length, angle is undefined!")
-        """
+                angles.append(360)
+        centroids.remove((start_pos_x, start_pos_y))
 
-        # What should happen? Idk
-        line_angle = 0
-        pass
 
 
     # IDEA:
@@ -393,9 +401,14 @@ while True:
     # well, when we encounter a crossing, we'll (probably) know if we're askew
     # thats something, so lets just do that
 
-    if blob_arrays[1].count(None) <= num_kreuzung_segments - 2 and centroids[0] and centroids[2] and v_connections[1].count(0) >= num_kreuzung_segments - 2 and any(v_connections[1]):
-        main_angle = calculate_line_slope(centroids[0], centroids[2])
-        print("Main angle:", main_angle)
+    if blob_arrays[1].count(None) <= num_kreuzung_segments - 3 and centroids[0] and centroids[num_roi_rows - 1] and v_connections[1].count(False) >= num_kreuzung_segments - 3 and any(v_connections[1]):
+        main_angle = calculate_line_slope(centroids[0], centroids[num_roi_rows - 1])
+        if show_blob_info:
+            img.draw_line(*centroids[0], *centroids[num_roi_rows - 1], color=angled_line_color)
+        #print("Main angle:", main_angle)
+    else:
+        main_angle = 360
+    angles.append(int(main_angle))
 
 
 
@@ -419,16 +432,18 @@ while True:
         for blob_array in blob_arrays[1:]:
             left_line_length = 0
             for i in range(vline_range[0], 0, -1):
-                if blob_array[i] and blob_array[i-1]:
-                    left_line_length += 1
+                if i >= 1 and i < num_kreuzung_segments:
+                    if blob_array[i] and blob_array[i-1]:
+                        left_line_length += 1
             if debug_print:
                 print("Length of left line:", left_line_length)
 
             # Then find if a line exists right of the range
             right_line_length = 0
             for i in range(vline_range[1] + 1, num_kreuzung_segments):
-                if blob_array[i] and blob_array[i-1]:
-                    right_line_length += 1
+                if i >= 1 and i < num_kreuzung_segments:
+                    if blob_array[i] and blob_array[i-1]:
+                        right_line_length += 1
             if debug_print:
                 print("Length of right line:", right_line_length)
 
@@ -466,10 +481,9 @@ while True:
 
     angle = 360
     # only talk if there are actual infos (tho maybe not only with ALL sums)
-    if all(weight_sums):
+    if all(centroids):
         # Send the angle and information about the left and right green spots
         # Remember that the green spots will only get checked if a kreuzung is present!
-        angle = int(line_angle)
 
         # angle variable ranges from -90 to 90 (tho never actually the edges bc of how we calculate angles),
         # so any other values are invalid
@@ -514,7 +528,9 @@ while True:
                 # anything unspecified just means driving straight
                 angle = 0
         """
-    send_to_arduino(angle)
+    angles.append(angle)
+    angles.append(int(10 * vline_pos))
+    send_to_arduino(angles)
 
     if debug_print:
         print("FPS:", clock.fps())  # Note: Your OpenMV Cam runs about half as fast while
