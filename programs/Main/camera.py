@@ -16,9 +16,9 @@ blue_led = pyb.LED(3)
 interface = rpc.rpc_uart_master(baudrate=115200)
 
 # Flag controlling if data will be transferred
-send_data = False
+send_data = True
 
-def send_to_arduino(*vals):
+def send_to_arduino(vals):
     # Send the data to the arduino
     # an angle is saved as an integer degree
 
@@ -31,10 +31,10 @@ def send_to_arduino(*vals):
     # 391: turn left immediately
     # -391: turn right immediately
 
-    print(vals)
+    print(*vals)
     if send_data:
         #green_led.on()
-        result = interface.call("update_cam_data", struct.pack("<h", *vals))
+        result = interface.call("update_cam_data", struct.pack("<hhhhhh", *vals))
         # Check if the arduino answers something valid
         if result is not None:
             #red_led.off()
@@ -529,7 +529,11 @@ while True:
                 angle = 0
         """
     angles.append(angle)
-    angles.append(int(10 * vline_pos))
+
+    if centroids and centroids[num_roi_rows - 1]:
+        angles.append(int(centroids[num_roi_rows - 1][0]) - start_pos_x)
+    else:
+        angles.append(360)
     send_to_arduino(angles)
 
     if debug_print:

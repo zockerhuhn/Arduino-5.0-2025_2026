@@ -94,7 +94,7 @@ void setup()
   debug = LOG_DISTANCE;
   bigState = DRIVING;
 
-  while (!(openMvCam.loop())) delay(1);
+  // while (!(openMvCam.loop())) delay(1);
 }
 
 void loop()
@@ -107,12 +107,12 @@ void loop()
   digitalWrite(LED_BUILTIN, (PinStatus)has_new_data);
   if (has_new_data) {
     cycles_since_data = 0;
-    append_to_window(received_cam_angle);
+    append_to_window(received_cam_data.kreuzung_data);
     get_angle();
-    // Serial.println("received angle: " + String(received_cam_angle));
+    // Serial.println(String(received_cam_data.angle1) + " " + String(received_cam_data.angle2) + " " + String(received_cam_data.angle3) + " " + String(received_cam_data.main_angle) + " " + String(received_cam_data.kreuzung_data) + " " + String(received_cam_data.dist_to_center));
   }
   else {
-    Serial.println("No new data");
+    // Serial.println("No new data");
     cycles_since_data++;
     // if (cycles_since_data > 20) {
     //   // Connection lost?
@@ -258,7 +258,7 @@ void loop()
           while (!openMvCam.loop()) {
             delay(1);
           }
-          append_to_window(received_cam_angle);
+          append_to_window(received_cam_data.kreuzung_data);
           get_angle();
           if (cam_angle == 360 || cam_angle <= -20) right_to_line(cam_angle);
           // Write invalid data to the vals
@@ -281,7 +281,7 @@ void loop()
           while (!openMvCam.loop()) {
             delay(1);
           }
-          append_to_window(received_cam_angle);
+          append_to_window(received_cam_data.kreuzung_data);
           get_angle();
           if (cam_angle == 360 || cam_angle >= 20) left_to_line(cam_angle);
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;

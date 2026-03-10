@@ -33,9 +33,9 @@ void left_to_line(int angle = 45, double back_factor = 1, double speed = 1) {
   double right_factor = 3 * abs(sin(angle * PI / 180));
   double left_factor = -back_factor * right_factor;
   motors.setSpeeds((int)(base_left_speed * speed * left_factor), (int)(base_right_speed * speed * right_factor));
-  while (cam_angle > 10) {
+  while (received_cam_data.main_angle > 10 || received_cam_data.main_angle == 360) {
     if (openMvCam.loop()) {
-      append_to_window(received_cam_angle);
+      append_to_window(received_cam_data.kreuzung_data);
       get_angle();
     }
     delay(1);
@@ -51,9 +51,9 @@ void right_to_line(int angle = 45, double back_factor = 1, double speed = 1) {
   double left_factor = 2 * abs(sin(angle * PI / 180));
   double right_factor = -back_factor * left_factor;
   motors.setSpeeds((int)(base_left_speed * speed * left_factor), (int)(base_right_speed * speed * right_factor));
-  while (cam_angle < -10) {
+  while (received_cam_data.main_angle < -10 || received_cam_data.main_angle == 360) {
     if (openMvCam.loop()) {
-      append_to_window(received_cam_angle);
+      append_to_window(received_cam_data.kreuzung_data);
       get_angle();
     }
     delay(1);
@@ -129,6 +129,8 @@ void move_as_angle(int angle) {
   // regardless, the speed should be related to the angle in such a way
   // that it is maximised at the angle 0 for both sides and be 0 at either extreme for the opposite side and 1 for the adjacent
   // This is basically the point of trigonometry
+  // ehh probably stupid
+
   double left_factor; double right_factor;
   left_factor = 1;
   right_factor = 1;
@@ -278,7 +280,7 @@ void abstand_umfahren() {
     readDirection();
     // Serial.println(String(direction));
     if (openMvCam.loop()) {
-      append_to_window(received_cam_angle);
+      append_to_window(received_cam_data.main_angle);
       get_angle();
     }
     motors.setSpeeds((int)(base_left_speed / 2), (int)(base_right_speed * 2));
