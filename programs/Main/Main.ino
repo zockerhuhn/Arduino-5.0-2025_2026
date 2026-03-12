@@ -109,7 +109,7 @@ void loop()
     cycles_since_data = 0;
     append_to_window(received_cam_data.kreuzung_data);
     get_angle();
-    // Serial.println(String(received_cam_data.angle1) + " " + String(received_cam_data.angle2) + " " + String(received_cam_data.angle3) + " " + String(received_cam_data.main_angle) + " " + String(received_cam_data.kreuzung_data) + " " + String(received_cam_data.dist_to_center));
+    Serial.println(String(cam_angle) + " <- " +  String(received_cam_data.angle1) + " " + String(received_cam_data.angle2) + " " + String(received_cam_data.angle3) + " " + String(received_cam_data.main_angle) + " " + String(received_cam_data.kreuzung_data) + " " + String(received_cam_data.dist_to_center) + " " + String(received_cam_data.line_left) + " " + String(received_cam_data.line_right));
   }
   else {
     // Serial.println("No new data");
@@ -236,6 +236,16 @@ void loop()
       if (cam_angle != 360 && no_line_cycle_count < 10) no_line_cycle_count = 0;
       if (cam_angle != 360 && no_line_cycle_count >= 10) no_line_cycle_count -= 20;
 
+      // if (received_cam_data.angle2 == 360 && received_cam_data.angle3 == 360 && received_cam_data.main_angle == 360) {       
+      //   if (received_cam_data.line_left > received_cam_data.line_right && received_cam_data.line_left >= 2) {
+      //     left(received_cam_data.angle1);
+      //   } else if (received_cam_data.line_right > received_cam_data.line_left && received_cam_data.line_right >= 2) {
+      //     right(received_cam_data.angle1);
+      //   }
+      //   straight(-1);
+      //   delay(550);
+      //   // received_cam_data.angle2 = 0;
+      // }
       // Check for valid angle
       if (-90 < cam_angle && cam_angle < 90) {
         Serial.println("drive by angle: " + String(cam_angle));
@@ -254,7 +264,7 @@ void loop()
           digitalWrite(LEDR, LOW);
           Serial.println("Left!");
           straight();
-          delay(1467);
+          delay(1367);
           // Let cam correct the rest
           left(75);
           while (!openMvCam.loop()) {
@@ -263,8 +273,7 @@ void loop()
           append_to_window(received_cam_data.kreuzung_data);
           get_angle();
           if (cam_angle == 360 || cam_angle <= -20) right_to_line(cam_angle);
-          // Write invalid data to the vals
-          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+          clear_cam_data();
           get_angle();
           digitalWrite(LEDG, LOW);
           digitalWrite(LEDB, LOW);
@@ -278,7 +287,7 @@ void loop()
           digitalWrite(LEDR, HIGH);
           Serial.println("Right.");
           straight();
-          delay(1467);
+          delay(1367);
           right(75);
           while (!openMvCam.loop()) {
             delay(1);
@@ -286,7 +295,7 @@ void loop()
           append_to_window(received_cam_data.kreuzung_data);
           get_angle();
           if (cam_angle == 360 || cam_angle >= 20) left_to_line(cam_angle);
-          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+          clear_cam_data();
           get_angle();
           digitalWrite(LEDG, LOW);
           digitalWrite(LEDB, LOW);
@@ -303,7 +312,7 @@ void loop()
           straight();
           delay(1300);
           left(190);
-          for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+          clear_cam_data();
           get_angle();
           digitalWrite(LEDG, LOW);
           digitalWrite(LEDB, LOW);

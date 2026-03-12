@@ -132,10 +132,10 @@ void move_as_angle(int angle) {
   // ehh probably stupid
 
   double left_factor; double right_factor;
-  left_factor = 1;
-  right_factor = 1;
+  left_factor = 1.0;
+  right_factor = 1.0;
 
-  double turn_factor = 2;
+  double turn_factor = 3; 
 
   if (angle < 0) {
     right_factor -= turn_factor * ((double)angle/90.0*(double)angle/90.0);
@@ -321,5 +321,6 @@ void abstand_umfahren() {
   // right(75);
 
   for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+  clear_cam_data();
   digitalWrite(LED_BUILTIN, LOW);
 }

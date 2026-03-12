@@ -34,7 +34,7 @@ def send_to_arduino(vals):
     print(*vals)
     if send_data:
         #green_led.on()
-        result = interface.call("update_cam_data", struct.pack("<hhhhhh", *vals))
+        result = interface.call("update_cam_data", struct.pack("<hhhhhhhh", *vals))
         # Check if the arduino answers something valid
         if result is not None:
             #red_led.off()
@@ -57,7 +57,7 @@ show_line_following = True
 ## Thresholds
 
 # Tolerance for how much green blobs can "overlap" with vertical line
-tolerance = 0.2
+tolerance = 0.05
 
 # Threshold which pixel brightness counts as black
 GRAYSCALE_THRESHOLD = [(0, 50)] # once at maybe 90 or something, but lower is generally better
@@ -420,6 +420,8 @@ while True:
 
     # Determine where the vertical line to the kreuzung is
     # Look at the bottom connections only
+    max_left_line_length = 0;
+    max_right_line_length = 0;
     if any(v_connections[1]): # Line only exists if down lines are seen
 
         # Find split from the line
@@ -448,6 +450,9 @@ while True:
                 print("Length of right line:", right_line_length)
 
             line_lengths.append((left_line_length, right_line_length))
+            max_left_line_length = max(max_left_line_length, left_line_length)
+            max_right_line_length = max(max_right_line_length, right_line_length)
+
 
         # If lines of blobs continue on both sides or
         # if a line of blobs is found either left or right and a single blob continues at the top,
@@ -455,85 +460,74 @@ while True:
 
         # TODO adequate kreuzungsdetection
 
-
-
-        """
-        if left_line_length >= 2 and right_line_length >= 2:
+        if line_lengths[0][0] >= 2 and line_lengths[0][1] >= 2:
             # Kreuzung on the top detected
             for blob in green_blobs:
-                if blob.cy() > top_center_pos[1]:
+                if blob.cy() > centroids[1][1]:
                     # TODO this tolerance is pretty important but can lead to bad stuff happening
-                    if blob.cx() - tolerance * roi_width < vline_pos * roi_width:
-                        blob_left = 1
-                    if blob.cx() + tolerance * roi_width > vline_pos * roi_width:
-                        blob_right = 1
-        elif (blob_array_top[vline_range[0]] or blob_array_top[vline_range[1]]) and (left_line_length_bottom >= 3 or right_line_length_bottom >= 3):
-                # Side-Kreuzung detected
-                for blob in green_blobs:
-                    print(blob.cy(), mid_center_pos)
-                    if blob.cy() > mid_center_pos[1]:
-                        if (blob.cx() - tolerance * (roi_width + left_line_length_bottom * 3) < vline_pos * roi_width) and left_line_length_bottom >= 3:
+                    if (blob.cx() - tolerance * roi_width < vline_pos * roi_width) and (blob.cx() + tolerance * roi_width > vline_pos * roi_width):
+                        if line_lengths[0][0] > line_lengths[0][1]:
                             blob_left = 1
-                        if (blob.cx() + tolerance * (roi_width + right_line_length_bottom * 3) > vline_pos * roi_width) and right_line_length_bottom >= 3:
+                        else:
                             blob_right = 1
-        """
+                    elif blob.cx() - tolerance * roi_width < vline_pos * roi_width:
+                        blob_left = 1
+                    elif blob.cx() + tolerance * roi_width > vline_pos * roi_width:
+                        blob_right = 1
+        elif vline_range[0] < 8 and vline_range[1] < 8:
+            if (blob_arrays[0][vline_range[0]] or blob_arrays[0][vline_range[1]]):
+                # Left side kreuzung:
+                if line_lengths[0][0] >= 3 or line_lengths[1][0] >= 3:
+                    for blob in green_blobs:
+                        if centroids[num_roi_rows-1]:
+                            if blob.cy() > centroids[num_roi_rows-1][1]:
+                                if (blob.cx() - tolerance * (roi_width + line_lengths[-1][0] * 3) < vline_pos * roi_width):
+                                    blob_left = 1
+                # Right side kreuzung
+                elif line_lengths[0][1] >= 3 or line_lengths[1][1] >= 3:
+                    for blob in green_blobs:
+                        if centroids[num_roi_rows-1]:
+                            if blob.cy() > centroids[num_roi_rows-1][1]:
+                                if (blob.cx() + tolerance * (roi_width + line_lengths[-1][1] * 3) > vline_pos * roi_width):
+                                    blob_right = 1
+    elif centroids[num_roi_rows - 1]:
+        max_left_line_length = 0
+        for i in range(int(8 * centroids[num_roi_rows - 1][0] / width), 0, -1):
+            if i >= 1 and i < num_kreuzung_segments:
+                if blob_arrays[num_roi_rows - 1][i] and blob_arrays[num_roi_rows - 1][i-1]:
+                    max_left_line_length += 1
+        max_right_line_length = 0
+        for i in range(int(8 * centroids[num_roi_rows - 1][0] / width) + 1, num_kreuzung_segments):
+            if i >= 1 and i < num_kreuzung_segments:
+                if blob_arrays[num_roi_rows - 1][i] and blob_arrays[num_roi_rows - 1][i-1]:
+                    max_right_line_length += 1
     # Communicating with robot
 
     angle = 360
-    # only talk if there are actual infos (tho maybe not only with ALL sums)
-    if all(centroids):
-        # Send the angle and information about the left and right green spots
-        # Remember that the green spots will only get checked if a kreuzung is present!
+    # Send the angle and information about the left and right green spots
+    # Remember that the green spots will only get checked if a kreuzung is present!
 
-        # angle variable ranges from -90 to 90 (tho never actually the edges bc of how we calculate angles),
-        # so any other values are invalid
-        # We'll "reserve" some of these values to use for the kreuzung turns
-        if (blob_left and blob_right):
-            angle = 180
-        elif blob_left:
-            angle = 90
-        elif blob_right:
-            angle = -90
-        if red_line_detected:
-            angle = 300
-    else:
-        line_left = 0
-        line_right = 0
-        """
-        if weight_sum_mid:
-            line_left = len([b for b in blob_array_mid[:3] if b])
-            line_right = len([b for b in blob_array_mid[4:] if b])
-        elif weight_sum_top:
-            line_left = len([b for b in blob_array_top[:3] if b])
-            line_right = len([b for b in blob_array_top[4:] if b])
-        else:
-            # Angle is considered "invalid" at 360°
-            angle = 360
+    # angle variable ranges from -90 to 90 (tho never actually the edges bc of how we calculate angles),
+    # so any other values are invalid
+    # We'll "reserve" some of these values to use for the kreuzung turns
+    if (blob_left and blob_right):
+        angle = 180
+    elif blob_left:
+        angle = 90
+    elif blob_right:
+        angle = -90
+    if red_line_detected:
+        angle = 300
 
-        if weight_sum_mid or weight_sum_top:
-            if line_left >= 4 and not line_right >= 4:
-                # If enough blobs on the left exists, the line is probably approximately horizontal
-                angle = 391 # eigentlich 50
-            elif line_right >= 4 and not line_left >= 4:
-                # Analogue for the right
-                angle = -391
-            elif line_left == line_right:
-                # If all we see is a horizontal line or no line at all, we drive onwards
-                angle = 0
-            elif line_left > line_right and line_left >= 2:
-                angle = 45
-            elif line_right > line_left and line_right >= 2:
-                angle = -45
-            else:
-                # anything unspecified just means driving straight
-                angle = 0
-        """
     angles.append(angle)
 
     if centroids and centroids[num_roi_rows - 1]:
         angles.append(int(centroids[num_roi_rows - 1][0]) - start_pos_x)
     else:
         angles.append(360)
+    angles.append(max_left_line_length)
+    angles.append(max_right_line_length)
+
     send_to_arduino(angles)
 
     if debug_print:

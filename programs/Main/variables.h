@@ -19,12 +19,15 @@ struct {
   int16_t main_angle;
   int16_t kreuzung_data;
   int16_t dist_to_center;
+  int16_t line_left;
+  int16_t line_right;
 } received_cam_data;
 
 const int NUM_ANGLE_VALS = 6;
 int16_t angle_array[NUM_ANGLE_VALS];
 int16_t cam_angle;
 int16_t kreuzung_angle;
+int16_t prev_kreuzung_angle;
 
 // Kreuzungs-Data
 bool is_red = false;
@@ -36,8 +39,8 @@ RescueBoardMotors motors = RescueBoardMotors();
 #define calibrationPin A6
 
 // TODO tune!!!
-int base_left_speed = (int)(1.25 * 125);
-int base_right_speed = (int)(1.25 * 75);
+int base_left_speed = (int)(1.0 * 125);
+int base_right_speed = (int)(1.0 * 75);
 
 //ABSTANDSSENSOR 1
 const uint16_t LOST_CONNECTION = -1;
