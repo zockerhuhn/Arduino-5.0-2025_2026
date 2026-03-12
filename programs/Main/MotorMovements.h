@@ -135,48 +135,56 @@ void move_as_angle(int angle) {
   left_factor = 1;
   right_factor = 1;
 
-  if (angle >= 0) {
-    right_factor = 1.5 * cos(angle * PI / 180);
-    left_factor = cos(angle * PI / 180);
-  }
-  else if (angle < -0) {
-    left_factor = 1.5 * cos(angle * PI / 180);
-    right_factor = cos(angle * PI / 180);
-  }
+  double turn_factor = 2;
 
-  if (angle >= 30) {
-    right_factor = 1.5 * abs(sin(angle * PI / 180));
-    // TODO find good way to calculate the other factor
-    left_factor = -right_factor;//-(double)(right_factor / 2);
+  if (angle < 0) {
+    right_factor -= turn_factor * ((double)angle/90.0*(double)angle/90.0);
+  } else {
+    left_factor -= turn_factor * ((double)angle/90.0*(double)angle/90.0);
   }
-  else if (angle <= -30) {
-    left_factor = 1.5 * abs(sin(angle * PI / 180));
-    right_factor = -left_factor;//-(double)(left_factor / 2);
-  }
+  
+  // if (angle >= 0) {
+  //   right_factor = 1.5 * cos(angle * PI / 180);
+  //   left_factor = cos(angle * PI / 180);
+  // }
+  // else if (angle < -0) {
+  //   left_factor = 1.5 * cos(angle * PI / 180);
+  //   right_factor = cos(angle * PI / 180);
+  // }
 
-  if (angle >= 45) {
-    right_factor = 0;
-    left_factor = -right_factor;
-    left_to_line(angle, 0.5);
-  }
-  else if (angle <= -45) {
-    left_factor = 0;
-    right_factor = -left_factor;
-    right_to_line(angle, 0.5);
-  }
+  // if (angle >= 30) {
+  //   right_factor = 1.5 * abs(sin(angle * PI / 180));
+  //   // TODO find good way to calculate the other factor
+  //   left_factor = -right_factor;//-(double)(right_factor / 2);
+  // }
+  // else if (angle <= -30) {
+  //   left_factor = 1.5 * abs(sin(angle * PI / 180));
+  //   right_factor = -left_factor;//-(double)(left_factor / 2);
+  // }
 
-  if (angle >= 50) {
-    straight(-1);
-    delay(300);
-    // left(35);
-    left_to_line(angle, 3, 2);
-  }
-  else if (angle <= -50) {
-    straight(-1);
-    delay(300);
-    // right(35);
-    right_to_line(angle, 3, 2);
-  }
+  // if (angle >= 45) {
+  //   right_factor = 0;
+  //   left_factor = -right_factor;
+  //   left_to_line(angle, 0.5);
+  // }
+  // else if (angle <= -45) {
+  //   left_factor = 0;
+  //   right_factor = -left_factor;
+  //   right_to_line(angle, 0.5);
+  // }
+
+  // if (angle >= 50) {
+  //   straight(-1);
+  //   delay(300);
+  //   // left(35);
+  //   left_to_line(angle, 3, 2);
+  // }
+  // else if (angle <= -50) {
+  //   straight(-1);
+  //   delay(300);
+  //   // right(35);
+  //   right_to_line(angle, 3, 2);
+  // }
 
   Serial.println(String(left_factor) + " " + String(right_factor));
   motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));

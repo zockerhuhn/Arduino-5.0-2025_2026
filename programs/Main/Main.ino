@@ -128,10 +128,12 @@ void loop()
       stop();
       // check for red!!!
       if (is_red) {
+        Serial.println("RED!");
         digitalWrite(LEDR, HIGH);
         delay(8000);
         digitalWrite(LEDR, LOW);
-        for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+        is_red = false;
+        clear_cam_data();
         get_angle();
         
         // Set distance array to invalid value (67) 
@@ -163,9 +165,9 @@ void loop()
           case LOG_COLOUR:
             if (is_red) Serial.println("reeeeeeeeed"); 
             else {
-              if (green_left && green_right) Serial.println("green green");
-              else if (green_left) Serial.println("green -----");
-              else if (green_right) Serial.println("----- green");
+              if (cam_angle == 180) Serial.println("green green");
+              else if (cam_angle == 90) Serial.println("green -----");
+              else if (cam_angle == -90) Serial.println("----- green");
               else Serial.println("----- -----");
             }
             break;
@@ -215,7 +217,7 @@ void loop()
       if (digitalRead(motorPin)) {
         bigState = STOP;
       }
-      if (no_line_cycle_count >= 50) {
+      if (no_line_cycle_count >= 100) {
         bigState = OPFER;
         break; // Jump prematurely out of the switch-case
       }
@@ -326,7 +328,7 @@ void loop()
           stop();
           bigState = STOP;
         }
-        if (cam_angle == 360) {
+        if (received_cam_data.angle1 == 360 && received_cam_data.angle2 == 360 && received_cam_data.angle3 == 360) {
           Serial.println("No line seen...");
           // No angle seen
           no_line_cycle_count++;

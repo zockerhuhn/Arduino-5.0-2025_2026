@@ -27,8 +27,6 @@ int16_t cam_angle;
 int16_t kreuzung_angle;
 
 // Kreuzungs-Data
-bool green_left = false;
-bool green_right = false;
 bool is_red = false;
 
 //MOTOREN
@@ -38,8 +36,8 @@ RescueBoardMotors motors = RescueBoardMotors();
 #define calibrationPin A6
 
 // TODO tune!!!
-int base_left_speed = 125;
-int base_right_speed = 75;
+int base_left_speed = (int)(1.25 * 125);
+int base_right_speed = (int)(1.25 * 75);
 
 //ABSTANDSSENSOR 1
 const uint16_t LOST_CONNECTION = -1;

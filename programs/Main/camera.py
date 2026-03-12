@@ -197,7 +197,7 @@ while True:
     img = sensor.snapshot()
 
     # Check for red
-    for blob in img.find_blobs(RED_THRESHOLD, roi=(30, 40, 100, 80), pixels_threshold=1000, area_threshold=800):
+    for blob in img.find_blobs(RED_THRESHOLD, roi=(0, 0, width, int(5/6 * height)), pixels_threshold=1000, area_threshold=800):
         # For red it isn't important if the line following gets broken, because it shouldn't run anyway
         img.draw_edges(blob.min_corners(), blob_color)
         img.draw_cross(blob.cx(), blob.cy(), blob_color)

@@ -15,6 +15,15 @@ void update_cam_data(void* in_data, size_t in_data_len) {
     }
 }
 
+void clear_cam_data() {
+    received_cam_data.angle1 = 0;
+    received_cam_data.angle2 = 0;
+    received_cam_data.angle3 = 0;
+    received_cam_data.main_angle = 0;
+    received_cam_data.kreuzung_data = 0;
+    received_cam_data.dist_to_center = 0;
+}
+
 void openmv_cam_setup() {
     // Calls update_cam_data when the OpenMV Cam requests it
     openMvCam.register_callback(F("update_cam_data"), update_cam_data);
@@ -43,8 +52,10 @@ void get_angle() {
     cam_angle = 0;
     int count = 0;
     if (received_cam_data.angle1 != 360) {
-        cam_angle += received_cam_data.angle1;
-        count++;
+        // weigh extra
+        double weight = 3;
+        cam_angle += weight * received_cam_data.angle1;
+        count += weight;
     }
     if (received_cam_data.angle2 != 360) {
         cam_angle += received_cam_data.angle2;
@@ -60,9 +71,6 @@ void get_angle() {
     }
     if (count != 0) cam_angle /= count;
     else cam_angle = 360;
-
-    
-
 
 
     Serial.print("cam_angle: " + String(cam_angle) + "\t");
@@ -93,15 +101,12 @@ void get_angle() {
     }
     else if (turn_count >= (int)(NUM_ANGLE_VALS / 2)) {
         kreuzung_angle = 180;
-        green_left = green_right = true;
     }
     else if (green_left_count >= (int)(NUM_ANGLE_VALS / 3)) {
         kreuzung_angle = 90;
-        green_left = true;
     }
     else if (green_right_count >= (int)(NUM_ANGLE_VALS / 3)) {
         kreuzung_angle = -90;
-        green_right = true;
     } 
     else if (left_count >= (int)(NUM_ANGLE_VALS / 2)) {
         kreuzung_angle = 89; //391;
@@ -114,4 +119,9 @@ void get_angle() {
     }
 
     Serial.print("kreuzung_angle: " + String(kreuzung_angle) + "\n");
+
+
+    // Kreuzung angle will be executed when TODO
+    // i guess when cam only sees the continuing line and not the side(s) of the kreuzung
+    
 }
