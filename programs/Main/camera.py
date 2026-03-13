@@ -34,7 +34,7 @@ def send_to_arduino(vals):
     print(*vals)
     if send_data:
         #green_led.on()
-        result = interface.call("update_cam_data", struct.pack("<hhhhhhhh", *vals))
+        result = interface.call("update_cam_data", struct.pack("<hhhhhhhhh", *vals))
         # Check if the arduino answers something valid
         if result is not None:
             #red_led.off()
@@ -295,6 +295,7 @@ while True:
 
     # Try to calculate centroids from only connected blobs, but if there are not enough, take all blobs
     centroids = [None] * num_roi_rows
+    weights = [0] * num_roi_rows
     total_counted_blobs = 0
     if any(v_connections[1]):
         # Find blob nearest to vline
@@ -354,16 +355,17 @@ while True:
                     centroid_sum_x = int(centroid_sum_x/weight_sum)
                     centroid_sum_y = int(centroid_sum_y/weight_sum)
                     centroids[row_idx] = (centroid_sum_x, centroid_sum_y)
-
+                    weights[row_idx] = weight_sum
 
 
     # If not that many blobs were counted
-    if num_blobs == 0 or total_counted_blobs / num_blobs < 0.4:
+    if num_blobs == 0 or total_counted_blobs / num_blobs < 0.3:
         # Find centers for each ROI-row by simply summing everything:
         for i, roi in enumerate(ROIs):
             centroid_sum_x, centroid_sum_y, weight_sum = find_avg_center(roi, blob_arrays[i])
             if weight_sum:
                 centroids[i] = (centroid_sum_x, centroid_sum_y)
+                weights[i] = weight_sum
 
     for centroid in centroids:
         #print("centroid: ", centroid)
@@ -527,6 +529,7 @@ while True:
         angles.append(360)
     angles.append(max_left_line_length)
     angles.append(max_right_line_length)
+    angles.append(sum(weights))
 
     send_to_arduino(angles)
 

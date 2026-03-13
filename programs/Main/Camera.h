@@ -1,18 +1,18 @@
 #pragma once
 
 void update_cam_data(void* in_data, size_t in_data_len) {
-    if (in_data_len == 4 * sizeof(in_data) /*weird mismatch*/) {
+    // if (in_data_len == 9 * sizeof(in_data) /*weird mismatch*/) {
         // Data is complete
         // Copying in_data buffer into receiving data structure
         // Serial.println("Writing received data to buffer");
         memcpy(&received_cam_data, in_data, sizeof(received_cam_data));
         
-    }
-    else {
-        Serial.println("Invalid data length AAAAAAAAA" + String(in_data_len) + "/" + String(sizeof(in_data)));
-        // memcpy(&received_cam_data, in_data, sizeof(received_cam_data));
-        // Serial.println(String(received_cam_data.angle1) + " " + String(received_cam_data.angle2) + " " + String(received_cam_data.angle3) + " " + String(received_cam_data.main_angle) + " " + String(received_cam_data.received_cam_angle) + " " + String(received_cam_data.dist_to_center));
-    }
+    // }
+    // else {
+    //     Serial.println("Invalid data length AAAAAAAAA" + String(in_data_len) + "/" + String(sizeof(in_data)));
+    //     // memcpy(&received_cam_data, in_data, sizeof(received_cam_data));
+    //     // Serial.println(String(received_cam_data.angle1) + " " + String(received_cam_data.angle2) + " " + String(received_cam_data.angle3) + " " + String(received_cam_data.main_angle) + " " + String(received_cam_data.received_cam_angle) + " " + String(received_cam_data.dist_to_center));
+    // }
 }
 
 void clear_cam_data() {
@@ -83,11 +83,19 @@ void get_angle() {
     }
 
     // Radical corners
-    if (received_cam_data.angle3 == 360 && received_cam_data.kreuzung_data == 360) {
-        if (received_cam_data.line_left + received_cam_data.line_right >= 5) {
-            if (cam_angle > 0) cam_angle = 90;
-            if (cam_angle < 0) cam_angle = -90;
-        }
+    if (received_cam_data.angle3 == 360 && received_cam_data.kreuzung_data == 360 && received_cam_data.num_pixels <= 2000) {
+        if (received_cam_data.line_left + received_cam_data.line_right >= 6) {
+            cam_angle = 90;
+            cam_angle *= radical_corner;
+        } 
+        else if (received_cam_data.line_left >= 4 && radical_corner == 1) cam_angle = 90;
+        else if (received_cam_data.line_right >= 4 && radical_corner == -1) cam_angle = -90;
+    }
+
+
+    // Lücke
+    if (received_cam_data.main_angle != 360 && received_cam_data.angle2 == 360) {
+
     }
 
     Serial.print("cam_angle: " + String(cam_angle) + "\t");

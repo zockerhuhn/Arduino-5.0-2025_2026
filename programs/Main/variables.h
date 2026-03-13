@@ -21,11 +21,14 @@ struct {
   int16_t dist_to_center;
   int16_t line_left;
   int16_t line_right;
+  int16_t num_pixels;
 } received_cam_data;
 
 const int NUM_ANGLE_VALS = 6;
 int16_t angle_array[NUM_ANGLE_VALS];
+int radical_corner;
 int16_t cam_angle;
+int16_t prev_cam_angle;
 int16_t kreuzung_angle;
 int16_t prev_kreuzung_angle;
 

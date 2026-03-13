@@ -30,6 +30,9 @@ void straight(double speed = 1) //drive straight
 }
 
 void left_to_line(int angle = 45, double back_factor = 1, double speed = 1) {
+  if (angle == 360) {
+    angle = 45;
+  }  
   double right_factor = 3 * abs(sin(angle * PI / 180));
   double left_factor = -back_factor * right_factor;
   motors.setSpeeds((int)(base_left_speed * speed * left_factor), (int)(base_right_speed * speed * right_factor));
@@ -48,6 +51,9 @@ void left_to_line(int angle = 45, double back_factor = 1, double speed = 1) {
 }
 
 void right_to_line(int angle = 45, double back_factor = 1, double speed = 1) {
+  if (angle == 360) {
+    angle = 45;
+  } 
   double left_factor = 2 * abs(sin(angle * PI / 180));
   double right_factor = -back_factor * left_factor;
   motors.setSpeeds((int)(base_left_speed * speed * left_factor), (int)(base_right_speed * speed * right_factor));
@@ -202,7 +208,7 @@ void straight_left(int turnBy=0, double speed = 1) //turn left
   }
   readDirection();
   int initialDirection = direction;
-  motors.setSpeeds((int)(-0.5 * base_left_speed * speed), (int)(2 * base_right_speed * speed));
+  motors.setSpeeds((int)(-0.25 * base_left_speed * speed), (int)(base_right_speed * speed));
   if (turnBy!=0) {
     while ((((initialDirection - turnBy) + 360) % 360) != direction) {
       delay(1);
@@ -226,7 +232,7 @@ void straight_right(int turnBy=0, double speed = 1) //turn right
   }
   readDirection();
   int initialDirection = direction;
-  motors.setSpeeds((int)(2 * base_left_speed * speed), (int)(-0.5 * base_right_speed * speed));
+  motors.setSpeeds((int)(base_left_speed * speed), (int)(-0.25 * base_right_speed * speed));
   if (turnBy != 0) {
     while (((initialDirection + turnBy) % 360) != direction) {
       delay(1);
@@ -251,50 +257,29 @@ void abstand_umfahren() {
   }
 
   readDirection();
-  int old_direction = direction;
-  // Serial.println(String(old_direction));
+  int start_direction = direction;
+  // Serial.println(String(start_direction));
 
   straight_right(70);
 
-  // right();
-  // if (digitalRead(motorPin)) {
-  //   bigState = STOP;
-  //   return;
-  // }
-  // readWriteDistanceArray2();
-  // int smallest = INT_MAX;
-  // while ((readDistance2() - smallest) < 20) {
-  //   delay(1);
-  //   smallest = min(readDistance2(), smallest);
-  //   // Serial.println(String(smallest) + " " + String(readDistance2()));
-  //   if (digitalRead(motorPin)) {
-  //     bigState = STOP;
-  //     return;
-  //   }
-  // }
-
-  // left(5);
-
-  // stop();
-  // delay(2000);
-
   for (int i = 0; i < NUM_ANGLE_VALS; i++) angle_array[i] = 360;
+  clear_cam_data();
   cam_angle = 360;
   digitalWrite(LEDR, HIGH);
   digitalWrite(LEDG, HIGH);
   digitalWrite(LEDB, HIGH);
   readDirection();
-  while (cam_angle == 360 || ((old_direction - direction) + 360) % 360 > 10) {
+  while (cam_angle == 360 || (((start_direction - direction) + 360) % 360 > 10 && !(((start_direction - direction) + 360) % 360 >= 80 && ((start_direction - direction) + 360) % 360 <= 100)) ) {
     readDirection();
     // Serial.println(String(direction));
     if (openMvCam.loop()) {
-      append_to_window(received_cam_data.main_angle);
+      append_to_window(received_cam_data.kreuzung_data);
       get_angle();
     }
-    motors.setSpeeds((int)(base_left_speed / 2), (int)(base_right_speed * 2));
+    motors.setSpeeds((int)(base_left_speed / 4), (int)(base_right_speed));
     
     if (readDistance2() - obstacle_threshold > 35) {
-      motors.setSpeeds((int)(base_left_speed / 3), (int)(base_right_speed * 2));
+      motors.setSpeeds((int)(base_left_speed / 6), (int)(base_right_speed));
     }
     delay(1);
   }
@@ -305,22 +290,11 @@ void abstand_umfahren() {
   delay(500);
   right_to_line();
 
-
   digitalWrite(LEDR, LOW);
   digitalWrite(LEDG, LOW);
   digitalWrite(LEDB, LOW);
 
-  // move_as_angle(cam_angle);
-  
-
-  if (digitalRead(motorPin)) {
-    stop();
-    bigState = STOP;
-    return;
-  }
-  // right(75);
-
-  for (int i = 0; i < 5; i++) distance_array[i] = 65535;
+  for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
   clear_cam_data();
   digitalWrite(LED_BUILTIN, LOW);
 }

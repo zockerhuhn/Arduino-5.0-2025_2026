@@ -109,7 +109,7 @@ void loop()
     cycles_since_data = 0;
     append_to_window(received_cam_data.kreuzung_data);
     get_angle();
-    Serial.println(String(cam_angle) + " <- " +  String(received_cam_data.angle1) + " " + String(received_cam_data.angle2) + " " + String(received_cam_data.angle3) + " " + String(received_cam_data.main_angle) + " " + String(received_cam_data.kreuzung_data) + " " + String(received_cam_data.dist_to_center) + " " + String(received_cam_data.line_left) + " " + String(received_cam_data.line_right));
+    Serial.println(String(cam_angle) + " <- " +  String(received_cam_data.angle1) + " " + String(received_cam_data.angle2) + " " + String(received_cam_data.angle3) + " " + String(received_cam_data.main_angle) + " " + String(received_cam_data.kreuzung_data) + " " + String(received_cam_data.dist_to_center) + " " + String(received_cam_data.line_left) + " " + String(received_cam_data.line_right) + " " + String(received_cam_data.num_pixels));
   }
   else {
     // Serial.println("No new data");
@@ -233,8 +233,14 @@ void loop()
         break;
       }
 
-      if (cam_angle != 360 && no_line_cycle_count < 10) no_line_cycle_count = 0;
-      if (cam_angle != 360 && no_line_cycle_count >= 10) no_line_cycle_count -= 20;
+      if (cam_angle != 360) {
+          if (no_line_cycle_count < 10) no_line_cycle_count = 0;
+          if (no_line_cycle_count >= 10) no_line_cycle_count -= 20;
+      }
+      if (received_cam_data.main_angle != 360) {
+        prev_cam_angle = received_cam_data.main_angle;
+      }
+      
 
       // if (received_cam_data.angle2 == 360 && received_cam_data.angle3 == 360 && received_cam_data.main_angle == 360) {       
       //   if (received_cam_data.line_left > received_cam_data.line_right && received_cam_data.line_left >= 2) {
@@ -253,6 +259,10 @@ void loop()
         digitalWrite(LEDR, LOW);
         digitalWrite(LEDG, LOW);
         digitalWrite(LEDB, LOW);
+        
+        if (cam_angle < -15 && cam_angle >= -70) radical_corner = -1;
+        if (cam_angle > 15 && cam_angle <= 70) radical_corner = 1;
+        
         // Basically move according to the angle with specific speed
         move_as_angle(cam_angle);
       } else {
@@ -267,6 +277,8 @@ void loop()
           delay(1367);
           // Let cam correct the rest
           left(75);
+          straight(-1);
+          delay(607);
           while (!openMvCam.loop()) {
             delay(1);
           }
@@ -275,6 +287,7 @@ void loop()
           if (cam_angle == 360 || cam_angle <= -20) right_to_line(cam_angle);
           clear_cam_data();
           get_angle();
+          straight();
           digitalWrite(LEDG, LOW);
           digitalWrite(LEDB, LOW);
           digitalWrite(LEDR, LOW);
@@ -289,6 +302,8 @@ void loop()
           straight();
           delay(1367);
           right(75);
+          straight(-1);
+          delay(607);
           while (!openMvCam.loop()) {
             delay(1);
           }
@@ -297,6 +312,7 @@ void loop()
           if (cam_angle == 360 || cam_angle >= 20) left_to_line(cam_angle);
           clear_cam_data();
           get_angle();
+          straight();
           digitalWrite(LEDG, LOW);
           digitalWrite(LEDB, LOW);
           digitalWrite(LEDR, LOW);
@@ -330,12 +346,16 @@ void loop()
           for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
           get_angle();
         }
+
         if (is_red) {
           digitalWrite(LEDG, LOW);
           digitalWrite(LEDB, LOW);
           digitalWrite(LEDR, HIGH);
           stop();
           bigState = STOP;
+        }
+        if (cam_angle == 360) {
+          cam_angle = prev_cam_angle;
         }
         if (received_cam_data.angle1 == 360 && received_cam_data.angle2 == 360 && received_cam_data.angle3 == 360) {
           Serial.println("No line seen...");
