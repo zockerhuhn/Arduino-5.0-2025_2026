@@ -98,7 +98,7 @@ void get_angle() {
 
     }
 
-    Serial.print("cam_angle: " + String(cam_angle) + "\t");
+    // Serial.print("cam_angle: " + String(cam_angle) + "\t");
     
     int green_left_count = 0;
     int green_right_count = 0;
@@ -142,7 +142,7 @@ void get_angle() {
         kreuzung_angle = 360;
     }
 
-    Serial.print("kreuzung_angle: " + String(kreuzung_angle) + "\n");
+    // Serial.print("kreuzung_angle: " + String(kreuzung_angle) + "\n");
 
     // Kreuzung angle will be executed when
     // cam only sees the continuing line and not the side(s) of the kreuzung

@@ -91,7 +91,7 @@ void setup()
 
   motor_setup();
 
-  debug = LOG_DISTANCE;
+  debug = LOG_NOTHING;
   bigState = DRIVING;
 
   // while (!(openMvCam.loop())) delay(1);
@@ -109,7 +109,7 @@ void loop()
     cycles_since_data = 0;
     append_to_window(received_cam_data.kreuzung_data);
     get_angle();
-    Serial.println(String(cam_angle) + " <- " +  String(received_cam_data.angle1) + " " + String(received_cam_data.angle2) + " " + String(received_cam_data.angle3) + " " + String(received_cam_data.main_angle) + " " + String(received_cam_data.kreuzung_data) + " " + String(received_cam_data.dist_to_center) + " " + String(received_cam_data.line_left) + " " + String(received_cam_data.line_right) + " " + String(received_cam_data.num_pixels));
+    // Serial.println(String(cam_angle) + " <- " +  String(received_cam_data.angle1) + " " + String(received_cam_data.angle2) + " " + String(received_cam_data.angle3) + " " + String(received_cam_data.main_angle) + " " + String(received_cam_data.kreuzung_data) + " " + String(received_cam_data.dist_to_center) + " " + String(received_cam_data.line_left) + " " + String(received_cam_data.line_right) + " " + String(received_cam_data.num_pixels));
   }
   else {
     // Serial.println("No new data");
@@ -254,7 +254,7 @@ void loop()
       // }
       // Check for valid angle
       if (-90 < cam_angle && cam_angle < 90) {
-        Serial.println("drive by angle: " + String(cam_angle));
+        // Serial.println("drive by angle: " + String(cam_angle));
 
         digitalWrite(LEDR, LOW);
         digitalWrite(LEDG, LOW);

@@ -192,7 +192,7 @@ void move_as_angle(int angle) {
   //   right_to_line(angle, 3, 2);
   // }
 
-  Serial.println(String(left_factor) + " " + String(right_factor));
+  // Serial.println(String(left_factor) + " " + String(right_factor));
   motors.setSpeeds((int)(left_factor * base_left_speed), (int)(right_factor * base_right_speed));
 }
 
@@ -258,9 +258,9 @@ void abstand_umfahren() {
 
   readDirection();
   int start_direction = direction;
-  // Serial.println(String(start_direction));
+  Serial.println("Start: " + String(start_direction));
 
-  straight_right(70);
+  straight_right(70, 1.5);
 
   for (int i = 0; i < NUM_ANGLE_VALS; i++) angle_array[i] = 360;
   clear_cam_data();
@@ -269,18 +269,19 @@ void abstand_umfahren() {
   digitalWrite(LEDG, HIGH);
   digitalWrite(LEDB, HIGH);
   readDirection();
-  while (cam_angle == 360 || (((start_direction - direction) + 360) % 360 > 10 && !(((start_direction - direction) + 360) % 360 >= 80 && ((start_direction - direction) + 360) % 360 <= 100)) ) {
+  while (!openMvCam.loop()) delay(1);
+  append_to_window(received_cam_data.kreuzung_data);
+  get_angle();
+  Serial.println(String(direction) + " " + String(received_cam_data.num_pixels));
+  // (((start_direction - direction) + 360) % 360 > 10 && (((start_direction - direction) + 360) % 360 < 70 && ((start_direction - direction) + 360) % 360 > 110)))
+  while ((received_cam_data.num_pixels < 1300 && !(received_cam_data.angle1 != 360 && received_cam_data.angle1 > 20 && received_cam_data.angle2 != 360 && received_cam_data.angle2 < -20))) {
     readDirection();
-    // Serial.println(String(direction));
+    Serial.println(String(direction) + " " + String(received_cam_data.num_pixels) + " " + String(received_cam_data.line_right) + " " + String(((start_direction - direction) + 360) % 360 > 10));
     if (openMvCam.loop()) {
       append_to_window(received_cam_data.kreuzung_data);
       get_angle();
     }
-    motors.setSpeeds((int)(base_left_speed / 4), (int)(base_right_speed));
-    
-    if (readDistance2() - obstacle_threshold > 35) {
-      motors.setSpeeds((int)(base_left_speed / 6), (int)(base_right_speed));
-    }
+    motors.setSpeeds((int)(base_left_speed / 2), (int)(2 * base_right_speed));
     delay(1);
   }
 
@@ -288,10 +289,11 @@ void abstand_umfahren() {
   right(100);
   straight(-1);
   delay(500);
-  right_to_line();
+  // right_to_line();
 
   digitalWrite(LEDR, LOW);
   digitalWrite(LEDG, LOW);
+
   digitalWrite(LEDB, LOW);
 
   for (int i = 0; i < NUM_DISTANCE_VALS; i++) distance_array[i] = 65535;
