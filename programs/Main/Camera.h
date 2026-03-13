@@ -79,7 +79,7 @@ void get_angle() {
 
     // If we basically see only one single line at the bottom (near the center), drive approximately straight
     if (received_cam_data.angle2 == 360 && received_cam_data.angle3 == 360 && received_cam_data.kreuzung_data == 360) {
-        if (received_cam_data.line_left < 2 && received_cam_data.line_right < 2 && received_cam_data.dist_to_center <= 10) {
+        if (received_cam_data.line_left + received_cam_data.line_right < 4 && received_cam_data.dist_to_center <= 10 && received_cam_data.num_pixels <= 300) {
             cam_angle = 0;
         }
     }

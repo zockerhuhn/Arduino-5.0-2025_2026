@@ -126,6 +126,7 @@ void loop()
   switch (bigState) {
     case STOP:
       stop();
+      no_line_cycle_count = 0;
       // check for red!!!
       if (is_red) {
         Serial.println("RED!");
@@ -217,7 +218,7 @@ void loop()
       if (digitalRead(motorPin)) {
         bigState = STOP;
       }
-      if (no_line_cycle_count >= 100) {
+      if (no_line_cycle_count >= 150) {
         bigState = OPFER;
         break; // Jump prematurely out of the switch-case
       }
