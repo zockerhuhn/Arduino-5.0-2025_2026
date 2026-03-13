@@ -57,7 +57,7 @@ show_line_following = True
 ## Thresholds
 
 # Tolerance for how much green blobs can "overlap" with vertical line
-tolerance = 0.05
+tolerance = 0.2
 
 # Threshold which pixel brightness counts as black
 GRAYSCALE_THRESHOLD = [(0, 50)] # once at maybe 90 or something, but lower is generally better
@@ -98,7 +98,7 @@ for i in range(num_roi_rows):
         (x_level, int((i * cut_height)/num_roi_rows), roi_width, int(cut_height/num_roi_rows)) for x_level in range(0, width, roi_width)
     ])
 
-def calculate_blob_array(roi_row) -> list[int]:
+def calculate_blob_array(roi_row) -> list:
     """
     Calculate the array of blobs in the given roi-row
     """
@@ -413,92 +413,48 @@ while True:
     angles.append(int(main_angle))
 
 
+    # "Kreuzungsdetection" will just be green detection while checking the neighbourhood of green blobs
+    for green_blob in green_blobs:
+        # Find the ROI of the green blob
+        roi_x = int(num_kreuzung_segments * green_blob.cx() / width)
+        roi_y = int(num_roi_rows * green_blob.cy() / cut_height)
 
-    # kreuzungsdetection:
-    # when line splits its a kreuzung
-    # which means: blobs left and right are multiple consecutive blobs
-    # we know where the split must approximately be the location
-    # of the vertical lines we just found
+        if roi_x < 0 or roi_x >= num_kreuzung_segments or roi_y < 0 or roi_y >= num_roi_rows:
+            continue
 
-    # Determine where the vertical line to the kreuzung is
-    # Look at the bottom connections only
-    max_left_line_length = 0;
-    max_right_line_length = 0;
-    if any(v_connections[1]): # Line only exists if down lines are seen
+        print(roi_x, roi_y, end="->")
 
-        # Find split from the line
-        # The following only searches for a completely horizontal split and therefore
-        # only works if the robot reaches a crossing at approximately the correct angle
-        # maybe TODO also make it work for wrong crossing-reaches
-
-        # First find if a line exists left of the range
-        line_lengths = []
-        for blob_array in blob_arrays[1:]:
-            left_line_length = 0
-            for i in range(vline_range[0], 0, -1):
-                if i >= 1 and i < num_kreuzung_segments:
-                    if blob_array[i] and blob_array[i-1]:
-                        left_line_length += 1
-            if debug_print:
-                print("Length of left line:", left_line_length)
-
-            # Then find if a line exists right of the range
-            right_line_length = 0
-            for i in range(vline_range[1] + 1, num_kreuzung_segments):
-                if i >= 1 and i < num_kreuzung_segments:
-                    if blob_array[i] and blob_array[i-1]:
-                        right_line_length += 1
-            if debug_print:
-                print("Length of right line:", right_line_length)
-
-            line_lengths.append((left_line_length, right_line_length))
-            max_left_line_length = max(max_left_line_length, left_line_length)
-            max_right_line_length = max(max_right_line_length, right_line_length)
+        # Check if a black line exists above:
+        #blob_arrays[roi_y - 1][roi_x].h() < (1 + tolerance) * blob_arrays[roi_y - 1][roi_x].w()
+        if roi_x >= 1 and roi_x < num_kreuzung_segments - 1 and (roi_y - 1 >= 0 and blob_arrays[roi_y - 1][roi_x] and blob_arrays[roi_y - 1][roi_x + 1] and blob_arrays[roi_y - 1][roi_x - 1]) or ((blob_arrays[roi_y][roi_x] and blob_arrays[roi_y][roi_x + 1] and blob_arrays[roi_y][roi_x - 1] and blob_arrays[roi_y][roi_x].cy() < green_blob.cy())):
+            # Now check on which side this green blob lies
+            if blob_arrays[roi_y][roi_x + 1] and blob_arrays[roi_y][roi_x - 1]:
+                # weird that both sides have blobs but okay
+                if blob_arrays[roi_y][roi_x + 1].pixels() > blob_arrays[roi_y][roi_x - 1].pixels():
+                    blob_left = 1
+                    print("l")
+                else:
+                    blob_right = 1
+                    print("r")
+            elif blob_arrays[roi_y][roi_x + 1]:
+                print("l")
+                blob_left = 1
+            elif blob_arrays[roi_y][roi_x - 1]:
+                print("r")
+                blob_right = 1
+            else:
+                print("n")
+        else:
+            print("-")
 
 
-        # If lines of blobs continue on both sides or
-        # if a line of blobs is found either left or right and a single blob continues at the top,
-        # it's a crossing
-
-        # TODO adequate kreuzungsdetection
-
-        if line_lengths[0][0] >= 2 and line_lengths[0][1] >= 2:
-            # Kreuzung on the top detected
-            for blob in green_blobs:
-                if blob.cy() > centroids[1][1]:
-                    # TODO this tolerance is pretty important but can lead to bad stuff happening
-                    if (blob.cx() - tolerance * roi_width < vline_pos * roi_width) and (blob.cx() + tolerance * roi_width > vline_pos * roi_width):
-                        if line_lengths[0][0] > line_lengths[0][1]:
-                            blob_left = 1
-                        else:
-                            blob_right = 1
-                    elif blob.cx() - tolerance * roi_width < vline_pos * roi_width:
-                        blob_left = 1
-                    elif blob.cx() + tolerance * roi_width > vline_pos * roi_width:
-                        blob_right = 1
-        elif vline_range[0] < 8 and vline_range[1] < 8:
-            if (blob_arrays[0][vline_range[0]] or blob_arrays[0][vline_range[1]]):
-                # Left side kreuzung:
-                if line_lengths[0][0] >= 3 or line_lengths[1][0] >= 3:
-                    for blob in green_blobs:
-                        if centroids[num_roi_rows-1]:
-                            if blob.cy() > centroids[num_roi_rows-1][1]:
-                                if (blob.cx() - tolerance * (roi_width + line_lengths[-1][0] * 3) < vline_pos * roi_width):
-                                    blob_left = 1
-                # Right side kreuzung
-                elif line_lengths[0][1] >= 3 or line_lengths[1][1] >= 3:
-                    for blob in green_blobs:
-                        if centroids[num_roi_rows-1]:
-                            if blob.cy() > centroids[num_roi_rows-1][1]:
-                                if (blob.cx() + tolerance * (roi_width + line_lengths[-1][1] * 3) > vline_pos * roi_width):
-                                    blob_right = 1
-    elif centroids[num_roi_rows - 1]:
-        max_left_line_length = 0
+    max_left_line_length = 0
+    max_right_line_length = 0
+    if centroids[num_roi_rows - 1]:
         for i in range(int(8 * centroids[num_roi_rows - 1][0] / width), 0, -1):
             if i >= 1 and i < num_kreuzung_segments:
                 if blob_arrays[num_roi_rows - 1][i] and blob_arrays[num_roi_rows - 1][i-1]:
                     max_left_line_length += 1
-        max_right_line_length = 0
         for i in range(int(8 * centroids[num_roi_rows - 1][0] / width) + 1, num_kreuzung_segments):
             if i >= 1 and i < num_kreuzung_segments:
                 if blob_arrays[num_roi_rows - 1][i] and blob_arrays[num_roi_rows - 1][i-1]:

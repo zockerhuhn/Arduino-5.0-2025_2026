@@ -328,7 +328,10 @@ void loop()
           straight();
           delay(1300);
           left(190);
+          straight(-1);
+          delay(607);
           clear_cam_data();
+          cam_angle = kreuzung_angle = prev_kreuzung_angle = 360;
           get_angle();
           digitalWrite(LEDG, LOW);
           digitalWrite(LEDB, LOW);

@@ -24,6 +24,8 @@ void clear_cam_data() {
     received_cam_data.dist_to_center = 0;
     received_cam_data.line_left = 0;
     received_cam_data.line_right = 0;
+    for (int i = 0; i < NUM_ANGLE_VALS; ++i) angle_array[i] = 0;
+
 }
 
 void openmv_cam_setup() {
@@ -77,14 +79,18 @@ void get_angle() {
 
     // If we basically see only one single line at the bottom (near the center), drive approximately straight
     if (received_cam_data.angle2 == 360 && received_cam_data.angle3 == 360 && received_cam_data.kreuzung_data == 360) {
-        if (received_cam_data.line_left < 2 && received_cam_data.line_right < 2 && received_cam_data.dist_to_center <= 25) {
+        if (received_cam_data.line_left < 2 && received_cam_data.line_right < 2 && received_cam_data.dist_to_center <= 10) {
             cam_angle = 0;
         }
     }
 
     // Radical corners
-    if (received_cam_data.angle3 == 360 && received_cam_data.kreuzung_data == 360 && received_cam_data.num_pixels <= 2000) {
-        if (received_cam_data.line_left + received_cam_data.line_right >= 6) {
+    if (received_cam_data.angle3 == 360 && received_cam_data.kreuzung_data == 360 && received_cam_data.num_pixels <= 2200) {
+        if (received_cam_data.dist_to_center >= -20 && received_cam_data.dist_to_center <= 20) {
+            if (received_cam_data.line_left >= 3 && received_cam_data.line_right < 2) cam_angle = 90;
+            if (received_cam_data.line_left < 2 && received_cam_data.line_right >= 3) cam_angle = -90;
+        }
+        else if (received_cam_data.line_left + received_cam_data.line_right >= 6) {
             cam_angle = 90;
             cam_angle *= radical_corner;
         } 
@@ -98,7 +104,7 @@ void get_angle() {
 
     }
 
-    // Serial.print("cam_angle: " + String(cam_angle) + "\t");
+    Serial.print("cam_angle: " + String(cam_angle) + "\t");
     
     int green_left_count = 0;
     int green_right_count = 0;
@@ -142,7 +148,7 @@ void get_angle() {
         kreuzung_angle = 360;
     }
 
-    // Serial.print("kreuzung_angle: " + String(kreuzung_angle) + "\n");
+    Serial.print("kreuzung_angle: " + String(kreuzung_angle) + "\n");
 
     // Kreuzung angle will be executed when
     // cam only sees the continuing line and not the side(s) of the kreuzung
@@ -152,9 +158,8 @@ void get_angle() {
     // if (abs(cam_angle) < 30 && kreuzung_angle != 360) {
     //     if ((received_cam_data.line_left < 2 && received_cam_data.line_right < 2) || received_cam_data.angle3 == 360) cam_angle = kreuzung_angle;
     // }
-
     // If the kreuzung data is lost, execute it
-    if (kreuzung_angle != prev_kreuzung_angle && prev_kreuzung_angle != 360) {
+    if (kreuzung_angle != prev_kreuzung_angle && prev_kreuzung_angle != 360 && (kreuzung_angle == 360 || (abs(kreuzung_angle) == 90 && prev_kreuzung_angle == 180)) && !(kreuzung_angle == 180 && abs(prev_kreuzung_angle) == 90)) {
         cam_angle = prev_kreuzung_angle;
     }
     // Else, adapt the cam angle so it still drives approximately onto the kreuzung
